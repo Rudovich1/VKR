@@ -2,136 +2,83 @@
 
 #include <vector>
 #include <functional>
-#include <initializer_list> 
+#include <iostream>
 
-template<typename Type>
-class Gene
+namespace GeneticAlgorithm
 {
-    Type data_;
-
-public:
-
-    Gene(){}
-    Gene(const Type& data): data_(data) {}
-    Gene(Type&& data): data_(data) {}
-    Gene(const Gene& gene): data_(gene.data_) {}
-    Gene(Gene&& gene): data_(std::move(gene.data_)) {} 
-
-    void operator=(const Gene& gene) {data_ = gene.data_;}
-    void operator=(Gene&& gene) {data_ = std::move(gene.data_);}
-    void operator=(const Type& data) {data_ = data;}
-    void operator=(Type&& data) {data_ = data;}
-
-    Type& get() const {return data_;}
-};
-
-template<typename Type>
-class Chromosome
-{
-    using _Gene = Gene<Type>;
-    using _Genes = std::vector<_Gene>;
-
-    _Genes genes_;
-
-public:
-
-    Chromosome(){}
-    Chromosome(size_t size): genes_(size) {}
-    Chromosome(size_t size, const _Gene& gene): genes_(size, gene) {}
-    Chromosome(size_t size, _Gene&& gene): genes_(size, gene) {}
-    Chromosome(std::initializer_list<Type> init_list)
+    template<typename GeneType>
+    class Gene
     {
-        for(auto& i: init_list)
-        {
-            genes_.emplace_back(Gene(i));
-        }
-    }
-    Chromosome(std::initializer_list<_Gene> init_list): genes_(init_list) {}
-    Chromosome(const _Genes& genes): genes_(genes) {}
-    Chromosome(_Genes&& genes): genes_(genes) {}
-    Chromosome(const Chromosome& chromosome): genes_(chromosome.genes_) {}
-    Chromosome(Chromosome&& chromosome): genes_(std::move(chromosome.genes_)) {}
+        GeneType data_;
 
-    void operator=(std::initializer_list<Type> init_list) {genes_ = init_list;}
-    void operator=(std::initializer_list<_Gene> init_list) {genes_ = init_list;}
-    void operator=(const _Genes& genes) {genes_ = genes;}
-    void operator=(_Genes&& genes) {genes_ = genes;}
-    void operator=(const Chromosome& chromosome) {genes_ = chromosome.genes_;}
-    void operator=(Chromosome&& chromosome) {genes_ = std::move(chromosome.genes_);}
+    public:
 
-    size_t size() const {return genes_.size();}
+        Gene();
+        Gene(const GeneType& data);
+        Gene(GeneType&& data);
+        Gene(const Gene& gene);
+        Gene(Gene&& gene);
 
-    typename _Genes::iterator begin() {return genes_.begin();}
-    typename _Genes::iterator end() {return genes_.end();}
+        void operator=(const Gene& gene);
+        void operator=(Gene&& gene);
 
-    _Gene& operator[] (size_t index) const {return genes_[index];}
-};
+        GeneType& get();
+    };
 
-template<typename Type>
-class Population
-{
-    using _Chromosome = Chromosome<Type>;
-    using _Chromosomes = std::vector<_Chromosome>;
-
-    _Chromosomes chromosomes_;
-
-public:
-
-    Population(){}
-    Population(size_t size, const _Chromosome& chromosome): chromosomes_(size, chromosome) {}
-    Population(size_t size, _Chromosome&& chromosome): chromosomes_(size, chromosome) {}
-    Population(std::initializer_list<std::initializer_list<Type>> init_list) 
+    template<typename GeneType, typename ... Args>
+    class Chromosome
     {
-        for(auto& i: init_list)
+        using Gene_ = Gene<GeneType>;
+        using Genes_ = std::vector<Gene_>;
+
+        Genes_ genes_;
+        double fitness_ = 0; 
+        bool is_calc_ = false;
+        Interfaces::FitnessFunction<GeneType, Args ...>& fitness_func_;
+
+    public:
+
+        Chromosome(size_t size);
+        Chromosome(const Genes_& genes);
+        Chromosome(Genes_&& genes);
+        Chromosome(const Chromosome& chromosome);
+        Chromosome(Chromosome&& chromosome);
+
+        void operator=(const Chromosome& chromosome);
+        void operator=(Chromosome&& chromosome);
+
+        double getFitness(Args ... args);
+
+        Gene_& operator[](size_t index)
         {
-            chromosomes_.emplace_back(_Chromosome(i));
+            return genes_[index];
         }
+
+    };
+
+    template<typename GeneType, typename ... Args>
+    class Population
+    {
+        using Chromosome_ = Chromosome<GeneType>;
+        using Chromosomes_ = std::vector<Chromosome_>;
+
+        Chromosomes_ chromosomes_;
+
+    };
+
+
+    namespace Interfaces
+    {
+        template<typename GeneType, typename ... Args>
+        struct FitnessFunction
+        {
+            virtual double operator()(const Chromosome<GeneType>&, Args ...) = 0;
+        };
+
+        template<typename GeneType, typename ... Args>
+        struct ProximityFunction
+        {
+            virtual double operator()(const Chromosome<GeneType>&, const Chromosome<GeneType>&, Args ...) = 0;
+        }; 
     }
-    Population(std::initializer_list<_Chromosome> init_list): chromosomes_(init_list) {}
-    Population(const _Chromosomes& chromosomes): chromosomes_(chromosomes) {}
-    Population(_Chromosomes&& chromosomes): chromosomes_(chromosomes) {}
-    Population(const Population& populations): chromosomes_(populations.chromosomes_) {}
-    Population(Population&& population): chromosomes_(std::move(population.chromosomes_)) {}
-
-    void operator=(std::initializer_list<std::initializer_list<Type>> init_list) {chromosomes_ = init_list;}
-    void operator=(std::initializer_list<_Chromosome> init_list) {chromosomes_ = init_list;}
-    void operator=(const _Chromosomes& chromosomes) {chromosomes_ = chromosomes;}
-    void operator=(_Chromosomes&& chromosomes) {chromosomes_ = chromosomes;}
-    void operator=(const Population& population) {chromosomes_ = population.chromosomes_;}
-    void operator=(Population&& population) {chromosomes_ = std::move(population.chromosomes_);}
-
-    size_t size() const {return chromosomes_.size()};
-
-    _Chromosomes::iterator begin() {return chromosomes_.begin();}
-    _Chromosomes::iterator end() {return chromosomes_.end();}
-
-    _Chromosome& operator[] (size_t index) const {return chromosomes_[index];}
-};
-
-
-template<typename Type, typename ... Types>
-struct FixtureFunction
-{
-    virtual double operator()(const Chromosome<Type>&, Types ...) = 0;
-};
-
-
-
-// class GeneticMethod
-// {
-//     bool q = false;
-    
-// };
-
-
-int main()
-{
-    Gene gene = true;
-    Chromosome chromosome = {gene, gene};
-    Chromosome chromosome2 = {Gene(false), Gene(true)};
-    Chromosome chromosome3 = {false, true};
-    Population population = {chromosome, chromosome};
-    Population population2 = {Chromosome{false, false}, Chromosome{true, true}};
-    Population population3 = {{false, false}, {true, true}};
-
 }
