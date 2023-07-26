@@ -11,41 +11,18 @@ class BufferType
 
 public:
 
-    BufferType(): max_size_(1), processed_size_(0) {}
-    BufferType(size_t max_size): max_size_(max_size), processed_size_(0) {}
+    BufferType();
+    BufferType(size_t max_size);
 
-    void add(const Type& new_elem)
-    {
-        if (buff_.size() == max_size_)
-        {
-            buff_.pop_front();
-        }
-        ++processed_size_;
-        buff_.push_back(new_elem);
-    }
+    void add(const Type& new_elem);
 
-    size_t buff_size() const
-    {
-        return buff_.size();
-    }
+    size_t buff_size() const;
 
-    size_t processed_size() const
-    {
-        return processed_size_;
-    }
+    size_t processed_size() const;
 
-    Type& back() const 
-    {
-        return buff_.back();
-    }
+    Type& back() const;
 
-    Type& operator[](size_t index) const
-    {
-        return buff_[index + processed_size_ - max_size_];
-    }
+    Type& operator[](size_t index) const;
 
-    void clear()
-    {
-        buff_.clear();
-    }
+    void clear();
 };

@@ -1,16 +1,16 @@
-#include "genetic_algorithm.hpp"
+// #include "genetic_algorithm.hpp"
+#include <stdint.h.>
 
-struct GeneInit: public GeneticAlgorithm::Interfaces::GeneInitFunction<bool>
+struct aaa
 {
-    bool operator()() override
+    aaa(int32_t a)
     {
-        return false;
+
     }
 };
 
 int main()
 {
-    GeneticAlgorithm::Gene<bool> gene(GeneInit);
 
     
 }
