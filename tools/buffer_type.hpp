@@ -13,6 +13,13 @@ public:
 
     BufferType();
     BufferType(size_t max_size);
+    BufferType(const BufferType<Type>& buffer);
+    BufferType(BufferType<Type>&& buffer);
+
+    // template<typename NewType>
+    // BufferType<NewType>& operator=(const BufferType<NewType>& buffer);
+    // template<typenmae NewType>
+    // BufferType<NewType>& operator=(BufferType<NewType>&& buffer);
 
     void add(const Type& new_elem);
 

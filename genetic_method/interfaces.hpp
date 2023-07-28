@@ -61,5 +61,4 @@ namespace GeneticAlgorithm
         using ConditionsForStoppingFunction = std::function<bool()>;
 
     } // end namespace Interfaces
-
 } // end namespace GeneticAlgorithm

@@ -13,89 +13,94 @@ namespace GeneticAlgorithm
         template<typename GeneType>
         class Gene
         {
-            GeneType gene_;
-
         public:
+            using Gene_ = Gene<GeneType>;
 
             Gene();
             Gene(const GeneType& data);
             Gene(GeneType&& data);
-            Gene(const Gene& gene);
-            Gene(Gene&& gene);
+            Gene(const Gene_& gene);
+            Gene(Gene_&& gene);
 
-            void operator=(const Gene& gene);
-            void operator=(Gene&& gene);
+            Gene_& operator=(const Gene_& gene);
+            Gene_& operator=(Gene_&& gene);
+
+            bool operator==(const Gene_& gene) const;
+            bool operator!=(const Gene_& gene) const;
 
             GeneType& get();
+
+        private:
+            GeneType data_;
         };
 
         template<typename GeneType>
         class Chromosome
         {
-            using Gene_ = Gene<GeneType>;
-            using Genes_ = std::vector<Gene_>;
-
-            Genes_ genes_;
-
         public:
+            using Genes_ = std::vector<Gene<GeneType>::Gene_>;
+            using Chromosome_ = Chromosome<GeneType>;
 
             Chromosome(size_t size);
             Chromosome(const Genes_& genes);
             Chromosome(Genes_&& genes);
-            Chromosome(const Chromosome& chromosome);
-            Chromosome(Chromosome&& chromosome);
+            Chromosome(const Chromosome_& chromosome);
+            Chromosome(Chromosome_&& chromosome);
 
-            void operator=(const Chromosome& chromosome);
-            void operator=(Chromosome&& chromosome);
+            Chromosome_& operator=(const Chromosome_& chromosome);
+            Chromosome_& operator=(Chromosome_&& chromosome);
 
-            Gene_& operator[](size_t index);
+            bool operator==(const Chromosome_& chromosome) const;
+            bool operator!=(const Chromosome_& chromosome) const;
 
+            Gene<GeneType>::Gene_& operator[](size_t index);
+
+        private:
+            Genes_ genes_;
         };
 
         template<typename GeneType>
         class Generation
         {
-            using Chromosome_ = Chromosome<GeneType>;
-            using Chromosomes_ = std::vector<Chromosome_>;
-
-            Chromosomes_ chromosomes_;
-
         public:
+            using Chromosomes_ = std::vector<Chromosome<GeneType>::Chromosome_>;
+            using Generation_ = Generation<GeneType>;
 
             Generation(size_t generation_size, size_t chromosome_size);
             Generation(const Chromosomes_& chromosomes);
             Generation(Chromosomes_&& chromosomes);
-            Generation(const Generation& generation);
-            Generation(Generation&& generation);
+            Generation(const Generation_& generation);
+            Generation(Generation_&& generation);
 
-            void operator=(const Generation& generation);
-            void operator=(Generation&& generation);
+            Generation_& operator=(const Generation_& generation);
+            Generation_& operator=(Generation_&& generation);
+            
+            bool operator==(const Generation_& generation) const;
+            bool operator!=(const Generation_& generation) const;
 
-            Chromosome_& operator[](size_t index);
+            Chromosome<GeneType>::Chromosome_& operator[](size_t index);
+
+        private:
+            Chromosomes_ chromosomes_;
         };
 
         template<typename GeneType>
         class Population
         {
-            using Generation_ = Generation<GeneType>;
-            using Generations_ = BufferType<Generation_>;
+        public:
+            using Generations_ = BufferType<Generation<GeneType>::Generation_>;
+            using Population_ = Population<GeneType>;
 
+            Population(size_t buffer_size);
+            Population(const Generations_& generations);
+            Population(Generations_&& generations);
+            Population(const Population_& population);
+            Population(Population_&& population);
+
+            Generation<GeneType>::Generation_& operator[](size_t index);
+
+        private:
             Generations_ generations_;
-
-            public:
-
-            Population(size_t generation_size, size_t chromosome_size, size_t buffer_size);
-            Population(const Generations_& generation);
-            Population(Generation_&& generation);
-            Population(const Population& population);
-            Population(Population&& population);
-
-            void operator=(const Population& population);
-            void operator=(Population&& population);
-
-            Generation_& operator[](size_t index);
         };
-
     } // end namespace Types
-
 } // end namespace GeneticAlgorithm

@@ -1,10 +1,18 @@
 #include "buffer_type.hpp"
 
 template<typename Type>
-BufferType<Type>::BufferType(): max_size_(1), processed_size_(0){}
+BufferType<Type>::BufferType(): max_size_(1), processed_size_(0) {}
 
 template<typename Type>
-BufferType<Type>::BufferType(size_t size) : max_size_(size), processed_size_(0){}
+BufferType<Type>::BufferType(size_t size) : max_size_(size), processed_size_(0) {}
+
+template<typename Type>
+BufferType<Type>::BufferType(const BufferType<Type>& buffer): 
+    max_size_(buffer.max_size_), processed_size_(buffer.processed_size), buff_(buffer.buff_) {}
+
+template<typename Type>
+BufferType<Type>::BufferType(BufferType<Type>&& buffer): 
+    max_size_(std::move(buffer.max_size_)), processed_size_(std::move(buffer.processed_size)), buff_(std::move(buffer.buff_)) {}
 
 template<typename Type>
 void BufferType<Type>::add(const Type &new_elem)
