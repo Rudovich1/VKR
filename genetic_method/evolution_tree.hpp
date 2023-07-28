@@ -22,6 +22,7 @@ namespace GeneticAlgorithm
                 ProximityFunction<GeneType> proximityFunction,
                 SelectionFunction<GeneType> selectionFunction,
                 ConditionsForStoppingFunction conditionsForStoppingFunction);
+            Conditions(const Conditions<GeneType>& conditions);
         };
 
         template<typename GeneType>
@@ -36,6 +37,7 @@ namespace GeneticAlgorithm
                 StartGenerationFunction<GeneType> startGenerationFunction,
                 ConditionsForStoppingFunction conditionsForStoppingFunction
             );
+            StartConditions(const StartConditions<GeneType>& conditions);
         };
 
         template<typename GeneType>
@@ -50,6 +52,7 @@ namespace GeneticAlgorithm
                 PoolingConditions<GeneType> poolingConditions,
                 ConditionsForStoppingFunction conditionsForStoppingFunction
             );
+            PoolingConditions(const PoolingConditions<GeneType>& conditions);
         };
 
     } // end namespace Data
@@ -69,31 +72,31 @@ namespace GeneticAlgorithm
         };
 
         template<typename GeneType>
-        class UnaryNode: public Node
+        class UnaryNode: public Node<GeneType>
         {
-            Node* node_;
+            Node<GeneType>* node_;
             
             public:
 
-            UnaryNode(const Data::Conditions<GeneType>& conditions, Node* node);
+            UnaryNode(const Data::Conditions<GeneType>& conditions, Node<GeneType>* node);
 
             Types::Generation<GeneType> selection() override;
         };
 
         template<typename GeneType>
-        class BinaryNode: public Node
+        class BinaryNode: public Node<GeneType>
         {
-            Node* node1_, node2_;
+            Node<GeneType>* node1_, node2_;
             
             public:
 
-            BinaryNode(const PoolingConditions<GeneType>& conditions, Node* node1, Node* node2);
+            BinaryNode(const PoolingConditions<GeneType>& conditions, Node<GeneType>* node1, Node<GeneType>* node2);
 
             Types::Generation<GeneType> selection() override;
         };
 
         template<typename GeneType>
-        class PopulationNode: public Node
+        class PopulationNode: public Node<GeneType>
         {
             public:
 
@@ -109,5 +112,4 @@ namespace GeneticAlgorithm
         }; // TODO
 
     } // end namespace EvolutionTree
-
 } // end namespace GeneticAlgorithm
