@@ -12,8 +12,8 @@ namespace GeneticAlgorithm
     {
         template<typename GeneType>
         class Gene
-        {0
-            GeneType data_;
+        {
+            GeneType gene_;
 
         public:
 
