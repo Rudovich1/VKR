@@ -10,52 +10,65 @@ namespace GeneticAlgorithm
         using namespace Interfaces;
 
         template<typename GeneType>
+        struct BaseData
+        {
+            fitnessFunction<GeneType> fitnessFunction_;
+            proximityFunction<GeneType> proximityFunction_;
+            selectionFunction<GeneType> selectionFunction_;
+            mutationFunction<GeneType> mutationFunction_;
+            crossingoverFunction<GeneType> crossingoverFunction_;
+            conditionsForStoppingFunction<GeneType> conditionsForStoppingFunction_;
+            size_t buffer_size_;
+            size_t generation_size_; 
+            size_t chromosome_size_;
+
+            BaseData(
+                fitnessFunction<GeneType> fitnessFunction,
+                proximityFunction<GeneType> proximityFunction,
+                selectionFunction<GeneType> selectionFunction,
+                mutationFunction<GeneType> mutationFunction,
+                crossingoverFunction<GeneType> crossingoverFunction,
+                conditionsForStoppingFunction<GeneType> conditionsForStoppingFunction,
+                size_t buffer_size, size_t generation_size, size_t chromosome_size);
+
+            BaseData(const BaseData<GeneType>& base_data);
+        };
+
+        template<typename GeneType>
         struct Conditions
         {
-            FitnessFunction<GeneType> fitnessFunction_;
-            ProximityFunction<GeneType> proximityFunction_;
-            SelectionFunction<GeneType> selectionFunction_;
-            ConditionsForStoppingFunction conditionsForStoppingFunction_;
+            BaseData<GeneType> base_data_;
 
-            Conditions(
-                FitnessFunction<GeneType> fitnessFunction,
-                ProximityFunction<GeneType> proximityFunction,
-                SelectionFunction<GeneType> selectionFunction,
-                ConditionsForStoppingFunction conditionsForStoppingFunction);
+            Conditions(const BaseData<GeneType>& base_data);
             Conditions(const Conditions<GeneType>& conditions);
         };
 
         template<typename GeneType>
         struct StartConditions: public Conditions<GeneType>
         {
-            StartGenerationFunction<GeneType> startGenerationFunction_;
+            startGenerationFunction<GeneType> startGenerationFunction_;
 
-            StartConditions(
-                FitnessFunction<GeneType> fitnessFunction,
-                ProximityFunction<GeneType> proximityFunction,
-                SelectionFunction<GeneType> selectionFunction,
-                StartGenerationFunction<GeneType> startGenerationFunction,
-                ConditionsForStoppingFunction conditionsForStoppingFunction
-            );
+            StartConditions(const BaseData<GeneType>& base_data, startGenerationFunction<GeneType> startGenerationFunction);
             StartConditions(const StartConditions<GeneType>& conditions);
         };
 
         template<typename GeneType>
         struct PoolingConditions: public Conditions<GeneType>
         {
-            PoolingConditions<GeneType> poolingConditions_;
+            poolingPopulations<GeneType> poolingPopulations_;
 
-            PoolingConditions(
-                FitnessFunction<GeneType> fitnessFunction,
-                ProximityFunction<GeneType> proximityFunction,
-                SelectionFunction<GeneType> selectionFunction,
-                PoolingConditions<GeneType> poolingConditions,
-                ConditionsForStoppingFunction conditionsForStoppingFunction
-            );
+            PoolingConditions(const BaseData<GeneType>& base_data, poolingPopulations<GeneType> poolingPopulations_);
             PoolingConditions(const PoolingConditions<GeneType>& conditions);
         };
 
     } // end namespace Data
+
+    namespace Evolution
+    {
+        template<typename GeneType>
+        void evolution(Types::Population<GeneType>& population, Data::Conditions<GeneType>& conditions);
+        
+    } // end namespace Evolution
 
     namespace EvolutionTree
     {
@@ -64,11 +77,9 @@ namespace GeneticAlgorithm
         {
             Data::Conditions<GeneType>& conditions_;
 
-            public:
-
+        public:
             Node(const Data::Conditions<GeneType>& conditions); 
-
-            virtual Types::Generation<GeneType> selection() = 0;
+            virtual Types::Population<GeneType> evolution() = 0;
         };
 
         template<typename GeneType>
@@ -76,11 +87,9 @@ namespace GeneticAlgorithm
         {
             Node<GeneType>* node_;
             
-            public:
-
+        public:
             UnaryNode(const Data::Conditions<GeneType>& conditions, Node<GeneType>* node);
-
-            Types::Generation<GeneType> selection() override;
+            Types::Population<GeneType> evolution() override;
         };
 
         template<typename GeneType>
@@ -88,28 +97,24 @@ namespace GeneticAlgorithm
         {
             Node<GeneType>* node1_, node2_;
             
-            public:
-
-            BinaryNode(const PoolingConditions<GeneType>& conditions, Node<GeneType>* node1, Node<GeneType>* node2);
-
-            Types::Generation<GeneType> selection() override;
+        public:
+            BinaryNode(const Data::PoolingConditions<GeneType>& conditions, Node<GeneType>* node1, Node<GeneType>* node2);
+            Types::Population<GeneType> evolution() override;
         };
 
         template<typename GeneType>
         class PopulationNode: public Node<GeneType>
         {
-            public:
-
-            PopulationNode(const StartConditions<GeneType>& conditions)
-
-            Types::Generation<GeneType> selection() override;
+        public:
+            PopulationNode(const Data::StartConditions<GeneType>& conditions);
+            Types::Population<GeneType> evolution() override;
         };
 
         template<typename GeneType, int numNode>
         class K_Node: public Node
-        {
-            
+        {  
         }; // TODO
 
     } // end namespace EvolutionTree
+
 } // end namespace GeneticAlgorithm

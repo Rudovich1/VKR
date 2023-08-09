@@ -39,7 +39,7 @@ namespace GeneticAlgorithm
         template<typename ... Args>
         struct ConditionsForStoppingWrapper
         {
-            virtual std::function<bool()> operator() (Args&& ...) = 0;
+            virtual std::function<bool(const Types::Population<GeneType>&)> operator()(Args&& ...) = 0;
         };
 
         template<typename GeneType, typename ... Args>
@@ -47,18 +47,42 @@ namespace GeneticAlgorithm
         {
             virtual std::function<Types::Population<GeneType>(const Types::Population<GeneType>&, const Types::Population<GeneType>&)> operator()(Args&& ...) = 0;
         };
+
+        template<typename GeneType, typename ... Args>
+        struct MutationFunctionWrapper
+        {
+            virtual std::function<void(Types::Generation<GeneType>&)> operator()(Args&& ...) = 0;
+        };
+
+        template<typename GeneType, typename ... Args>
+        struct CrossingoverFunctionWrapper
+        {
+            virtual std::function<void(Types::Generation<GeneType>&)> operator()(Args&& ...) = 0;
+        };
         
         template<typename GeneType>
-        using FitnessFunction = std::function<double(const Types::Chromosome<GeneType>&)>;
+        using fitnessFunction = std::function<double(const Types::Chromosome<GeneType>&)>;
+
         template<typename GeneType>
-        using ProximityFunction = std::function<double(const Types::Chromosome<GeneType>&, const Types::Chromosome<GeneType>&)>;
+        using proximityFunction = std::function<double(const Types::Chromosome<GeneType>&, const Types::Chromosome<GeneType>&)>;
+
         template<typename GeneType>
-        using StartGenerationFunction = std::function<Types::Generation<GeneType>()>;
+        using startGenerationFunction = std::function<Types::Generation<GeneType>()>;
+
         template<typename GeneType>
-        using SelectionFunction = std::function<Types::Generation<GeneType>(const Types::Generation<GeneType>&)>;
+        using selectionFunction = std::function<Types::Generation<GeneType>(const Types::Generation<GeneType>&)>;
+
         template<typename GeneType>
-        using PoolingPopulations = std::function<Types::Population<GeneType>(const Types::Population<GeneType>&, const Types::Population<GeneType>&)>;
-        using ConditionsForStoppingFunction = std::function<bool()>;
+        using poolingPopulations = std::function<Types::Population<GeneType>(const Types::Population<GeneType>&, const Types::Population<GeneType>&)>;
+
+        template<typename GeneType>
+        using conditionsForStoppingFunction = std::function<bool(const Types::Population<GeneType>&)>;
+
+        template<typename GeneType>
+        using mutationFunction = std::function<void(Types::Generation<GeneType>&)>;
+
+        template<typename GeneType>
+        using crossingoverFunction = std::function<void(Types::Generation<GeneType>&)>;
 
     } // end namespace Interfaces
 } // end namespace GeneticAlgorithm
