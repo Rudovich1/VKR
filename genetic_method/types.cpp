@@ -22,7 +22,7 @@ namespace GeneticAlgorithm
         template<typename GeneType>
         Gene<GeneType>::Gene_& Gene<GeneType>::operator=(const Gene<GeneType>::Gene_& gene)
         {
-            if (this != *gene)
+            if (this != &gene)
             {
                 data_ = gene.data_;
             }
@@ -32,7 +32,7 @@ namespace GeneticAlgorithm
         template<typename GeneType>
         Gene<GeneType>::Gene_& Gene<GeneType>::operator=(Gene<GeneType>::Gene_ &&gene)
         {
-            if (this != *gene)
+            if (this != &gene)
             {
                 data_ = std::move(gene.data_);
             }
@@ -58,26 +58,27 @@ namespace GeneticAlgorithm
         }
 
         template<typename GeneType>
-        Chromosome<GeneType>::Chromosome(size_t size): genes_(size) {}
+        Chromosome<GeneType>::Chromosome(size_t size): genes_(size), fitness_() {}
 
         template<typename GeneType>
-        Chromosome<GeneType>::Chromosome(const Chromosome<GeneType>::Genes_& genes): genes_(genes) {}
+        Chromosome<GeneType>::Chromosome(const Chromosome<GeneType>::Genes_& genes): genes_(genes), fitness_() {}
 
         template<typename GeneType>
-        Chromosome<GeneType>::Chromosome(Chromosome<GeneType>::Genes_&& genes): genes_(genes) {}
+        Chromosome<GeneType>::Chromosome(Chromosome<GeneType>::Genes_&& genes): genes_(genes), fitness_() {}
 
         template<typename GeneType>
-        Chromosome<GeneType>::Chromosome(const Chromosome<GeneType>::Chromosome_& chromosome): genes_(chromosome.genes_) {}
+        Chromosome<GeneType>::Chromosome(const Chromosome<GeneType>::Chromosome_& chromosome): genes_(chromosome.genes_), fitness_(chromosome.fitness_) {}
 
         template<typename GeneType>
-        Chromosome<GeneType>::Chromosome(Chromosome<GeneType>::Chromosome_&& chromosome): genes_(std::move(chromosome.genes_)) {}
+        Chromosome<GeneType>::Chromosome(Chromosome<GeneType>::Chromosome_&& chromosome): genes_(std::move(chromosome.genes_)), fitness_(std::move(chromosome.fitness_)) {}
 
         template<typename GeneType>
         Chromosome<GeneType>::Chromosome_& Chromosome<GeneType>::operator=(const Chromosome<GeneType>::Chromosome_& chromosome)
         {
-            if (this != chromosome)
+            if (this != &chromosome)
             {
                 genes_ = chromosome.genes_;
+                fitness_ = chromosome.fitness_;
             }
             return *this;
         }
@@ -85,9 +86,10 @@ namespace GeneticAlgorithm
         template<typename GeneType>
         Chromosome<GeneType>::Chromosome_& Chromosome<GeneType>::operator=(Chromosome<GeneType>::Chromosome_&& chromosome)
         {
-            if (this != chromosome)
+            if (this != &chromosome)
             {
-                genes_ = chromosome.genes_;
+                genes_ = std::move(chromosome.genes_);
+                fitness_ = std::move(chromosome.fitness_);
             }
             return *this;
         }
@@ -98,6 +100,7 @@ namespace GeneticAlgorithm
             if (genes_.size() != chromosome.genes_.size())
             {
                 // TODO throw ....
+                throw std::exception();
             }
             for (size_t i = 0, size = genes_.size(); i < size; ++i)
             {
@@ -139,7 +142,7 @@ namespace GeneticAlgorithm
         template<typename GeneType>
         Generation<GeneType>::Generation_& Generation<GeneType>::operator=(const Generation<GeneType>::Generation_& generation)
         {
-            if (this != *generation)
+            if (this != &generation)
             {
                 chromosomes_ = generation.chromosomes_;
             }
@@ -149,7 +152,7 @@ namespace GeneticAlgorithm
         template<typename GeneType>
         Generation<GeneType>::Generation_& Generation<GeneType>::operator=(Generation<GeneType>::Generation_&& generation)
         {
-            if (this != *generation)
+            if (this != &generation)
             {
                 chromosomes_ = std::move(generation.chromosomes_);
             }
@@ -204,6 +207,24 @@ namespace GeneticAlgorithm
         Generation<GeneType>::Generation_& Population<GeneType>::operator[](size_t index)
         {
             return generations_[index];
+        }
+
+        template<typename GeneType>
+        void Population<GeneType>::add(const Generation<GeneType>::Generation_& generation)
+        {
+            generations_.add(generation);
+        }
+
+        template<typename GeneType>
+        void Population<GeneType>::add(Generation<GeneType>::Generation_&& generation)
+        {
+            generations_.add(generation);
+        }
+
+        template<typename GeneType>
+        Generation<GeneType>::Generation_& Population<GeneType>::back()
+        {
+            return generations_.back();
         }
     } // end namespace Types
 } // end namespace GeneticAlgorithm

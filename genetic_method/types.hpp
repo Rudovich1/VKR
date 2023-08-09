@@ -3,8 +3,10 @@
 #include <vector>
 #include <functional>
 #include <iostream>
+#include <exception>
 
 #include "../tools/buffer_type.hpp"
+#include "../tools/nullable_type.hpp"
 
 namespace GeneticAlgorithm
 {
@@ -57,6 +59,7 @@ namespace GeneticAlgorithm
 
         private:
             Genes_ genes_;
+            NullableType<double> fitness_;
         };
 
         template<typename GeneType>
@@ -98,6 +101,11 @@ namespace GeneticAlgorithm
             Population(Population_&& population);
 
             Generation<GeneType>::Generation_& operator[](size_t index);
+
+            void add(const Generation<GeneType>::Generation_& generation);
+            void add(Generation<GeneType>::Generation_&& generation);
+
+            Generation<GeneType>::Generation_& back();
 
         private:
             Generations_ generations_;
