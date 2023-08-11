@@ -58,6 +58,12 @@ namespace GeneticAlgorithm
         }
 
         template<typename GeneType>
+        const GeneType& Gene<GeneType>::get() const
+        {
+            return data_;
+        }
+
+        template<typename GeneType>
         Chromosome<GeneType>::Chromosome(size_t size): genes_(size), fitness_() {}
 
         template<typename GeneType>
@@ -120,6 +126,12 @@ namespace GeneticAlgorithm
 
         template<typename GeneType>
         Gene<GeneType>::Gene_& Chromosome<GeneType>::operator[](size_t index)
+        {
+            return genes_[index];
+        }
+
+        template<typename GeneType>
+        const Gene<GeneType>::Gene_& Chromosome<GeneType>::operator[](size_t index) const
         {
             return genes_[index];
         }
@@ -189,6 +201,12 @@ namespace GeneticAlgorithm
         }
 
         template<typename GeneType>
+        const Chromosome<GeneType>::Chromosome_& Generation<GeneType>::operator[](size_t index) const
+        {
+            return chromosomes_[i];
+        }
+
+        template<typename GeneType>
         Population<GeneType>::Population(size_t buffer_size): generations_(buffer_size) {}
 
         template<typename GeneType>
@@ -210,6 +228,12 @@ namespace GeneticAlgorithm
         }
 
         template<typename GeneType>
+        const Generation<GeneType>::Generation_& Population<GeneType>::operator[](size_t index) const
+        {
+            return generations_[index];
+        }
+
+        template<typename GeneType>
         void Population<GeneType>::add(const Generation<GeneType>::Generation_& generation)
         {
             generations_.add(generation);
@@ -226,5 +250,12 @@ namespace GeneticAlgorithm
         {
             return generations_.back();
         }
+
+        template<typename GeneType>
+        const Generation<GeneType>::Generation_& Population<GeneType>::back() const
+        {
+            return generations_.back();
+        }
+
     } // end namespace Types
 } // end namespace GeneticAlgorithm

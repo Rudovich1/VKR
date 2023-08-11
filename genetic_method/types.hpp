@@ -31,6 +31,7 @@ namespace GeneticAlgorithm
             bool operator!=(const Gene_& gene) const;
 
             GeneType& get();
+            const GeneType& get() const;
 
         private:
             GeneType data_;
@@ -56,6 +57,7 @@ namespace GeneticAlgorithm
             bool operator!=(const Chromosome_& chromosome) const;
 
             Gene<GeneType>::Gene_& operator[](size_t index);
+            const Gene<GeneType>::Gene_& operator[](size_t index) const;
 
         private:
             Genes_ genes_;
@@ -82,6 +84,7 @@ namespace GeneticAlgorithm
             bool operator!=(const Generation_& generation) const;
 
             Chromosome<GeneType>::Chromosome_& operator[](size_t index);
+            const Chromosome<GeneType>::Chromosome_& operator[](size_t index) const;
 
         private:
             Chromosomes_ chromosomes_;
@@ -101,11 +104,13 @@ namespace GeneticAlgorithm
             Population(Population_&& population);
 
             Generation<GeneType>::Generation_& operator[](size_t index);
+            const Generation<GeneType>::Generation_& operator[](size_t index) const;
 
             void add(const Generation<GeneType>::Generation_& generation);
             void add(Generation<GeneType>::Generation_&& generation);
 
             Generation<GeneType>::Generation_& back();
+            const Generation<GeneType>::Generation_& back() const;
 
         private:
             Generations_ generations_;
