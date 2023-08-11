@@ -59,6 +59,12 @@ namespace GeneticAlgorithm
         {
             virtual std::function<void(Types::Generation<GeneType>&)> operator()(Args&& ...) = 0;
         };
+
+        template<typename GeneType, typename ResultType, typename ... Args>
+        struct ResultFunctionWrapper
+        {
+            virtual std::function<ResultType(const Types::Population<GeneType>&)> operator()(Args&& ...) = 0;
+        };
         
         template<typename GeneType>
         using fitnessFunction = std::function<double(const Types::Chromosome<GeneType>&)>;
@@ -83,6 +89,9 @@ namespace GeneticAlgorithm
 
         template<typename GeneType>
         using crossingoverFunction = std::function<void(Types::Generation<GeneType>&)>;
+
+        template<typename GeneType, typename ResultType>
+        using resultFunction = std::function<ResultType(const Types::Population<GeneType>&)>;
 
     } // end namespace Interfaces
 } // end namespace GeneticAlgorithm
