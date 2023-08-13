@@ -1,8 +1,6 @@
 #pragma once
 
 #include <functional>
-#include "types.hpp"
-#include "interfaces.hpp"
 #include "evolution_tree.hpp"
 
 namespace GeneticAlgorithm
@@ -22,5 +20,16 @@ namespace GeneticAlgorithm
         EvolutionTree::Node<GeneType>* node_;
         Interfaces::resultFunction<GeneType, ResultType> resultFunction_;
     };
+
+
+    template<typename GeneType, typename ResultType>
+    General<GeneType, ResultType>::General(EvolutionTree::Node<GeneType>* node, Interfaces::resultFunction<GeneType, ResultType> resultFunction):
+        node_(node), resultFunction_(resultFunction) {}
+
+    template<typename GeneType, typename ResultType>
+    ResultType General<GeneType, ResultType>::calc()
+    {
+        return resultFunction_(node_->evolution());
+    }
 
 } // end namespace GeneticAlgorithm
