@@ -72,6 +72,12 @@ namespace GeneticAlgorithm
         {
             virtual std::function<void(const Types::Population<GeneType>&)> operator()(Args& ...) = 0;
         };
+
+        template<typename GeneType, typename ... Args>
+        struct EndNodeFunctionWrapper
+        {
+            virtual std::function<void()> operator()(Args& ...) = 0;
+        };
         
         template<typename GeneType>
         using fitnessFunction = std::function<double(const Types::Chromosome<GeneType>&)>;
@@ -102,6 +108,9 @@ namespace GeneticAlgorithm
 
         template<typename GeneType>
         using anyFunction = std::function<void(const Types::Population<GeneType>&)>;
+
+        template<typename GeneType>
+        using endNode = std::function<void()>;
 
     } // end namespace Interfaces
 } // end namespace GeneticAlgorithm
