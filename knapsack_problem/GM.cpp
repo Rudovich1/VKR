@@ -1,4 +1,5 @@
 #define PRINT
+#define GM_LOG
 
 #include "GM_functions.hpp"
 #include "knapsack_problem.hpp"
@@ -6,26 +7,28 @@
 #include "knapsack_problem_solver.hpp"
 
 #include <chrono>
+#include <fstream>
 
 int main()
 {
-    size_t num_items = 1000;
+    size_t num_items = 10000;
     size_t min_item_weight = 1;
-    size_t max_item_weight = 10;
+    size_t max_item_weight = 100;
     size_t min_item_value = 1;
-    size_t max_item_value = 10;
+    size_t max_item_value = 100;
     size_t min_knapsack_size = 10000;
-    size_t max_knapsack_size = 20000;
+    size_t max_knapsack_size = 10000;
     size_t generation_size = 500;
-    size_t num_marriage_couples = 250;
-    double mutation_coef = 0.01;
-    double cross_coef = 0.7;
+    size_t num_marriage_couples = generation_size;
+    double mutation_coef = 0.001;
+    double cross_coef = 0.8;
     size_t num_no_improvements = 100;
     size_t buffer_size = 1;
-    // std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
+    size_t num_node = 7;
+    std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
     // std::chrono::seconds work_time(20);
 
-    size_t max_counter = 20;
+    size_t max_counter = num_no_improvements;
     size_t counter = 0;
     double best_result = 0.;
     GeneticAlgorithm::Types::Chromosome<bool> res(generation_size);
@@ -44,7 +47,7 @@ int main()
         CrossingoverFunctions::Homogeneous_CrossingoverFunction()(cross_coef, num_marriage_couples),
         ConditionsForStopping::NoImprovements_ConditionsForStopping()(max_counter, counter, best_result),
         AnyFunctions::SaveBestResult_Function()(tmp_res),
-        EndNode::BaseEndNodeFunction()(counter, best_result, tmp_res),
+        EndNode::BaseEndNodeFunction()(counter, best_result, tmp_res, num_node, start_time),
         buffer_size, generation_size, num_items);
 
     GeneticAlgorithm::EvolutionTree::PopulationNode<bool> pop_node_1(base_conditions, StartGenerationFunctions::Mutate_StartGenerationFunction()(kp, generation_size, mutation_coef));
@@ -60,6 +63,13 @@ int main()
     GeneticAlgorithm::General<bool, GeneticAlgorithm::Types::Chromosome<bool>> general(node, ResultFunctions::BestChromosomeInLastGeneration_ResultFunction()(kp));
 
     res = general.calc();
+
+    _RUN_DUMP_();
+    _GENERAL_DUMP_();
+
+    std::ofstream out("gm_result.txt");
+
+    _LOG_DUMP_(out, 3, false, "");
 
     std::cout << kp << '\n' << "Gen: " << res.getFitness().getVal() - 1 << '\n' << "Dp: " << KnapsackProblemSolver::dynamicProgrammingMethod(kp) << '\n';
     // for (size_t i = 0; i < res.get().size(); ++i)

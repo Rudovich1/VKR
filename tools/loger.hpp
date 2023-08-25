@@ -1,7 +1,5 @@
 #pragma once
 
-// #define KNAPSACK_TEST
-
 #include <vector>
 #include <iostream>
 #include <fstream>
@@ -231,7 +229,7 @@ struct GeneralStatistics: public BaseStatistics
     }
 };
 
-class KnapsackProblemTest
+class GMTest
 {
     static inline GenerationStatistics generation_cache;
     static inline PopulationStatistics population_cache;
@@ -500,14 +498,26 @@ public:
     }
 };
 
-#define _CHROMOSOME_DUMP_(fitness, meta) KnapsackProblemTest::chromosomeDump(fitness, meta)
+class Counter
+{
+    static inline size_t num = 0;
 
-#define _GENERATION_DUMP_(work_time, meta) KnapsackProblemTest::generationDump(work_time, meta)
+public:
 
-#define _POPULATION_DUMP_(meta) KnapsackProblemTest::populationDump(meta)
+    static size_t get_val()
+    {
+        return num++;
+    }
+};
 
-#define _RUN_DUMP_(meta) KnapsackProblemTest::runDump(meta)
+#define _CHROMOSOME_DUMP_(fitness, meta) GMTest::chromosomeDump(fitness, meta)
 
-#define _GENERAL_DUMP_(meta) KnapsackProblemTest::generalDump(meta)
+#define _GENERATION_DUMP_(work_time, meta) GMTest::generationDump(work_time, meta)
 
-#define _LOG_DUMP_(out, depth, sort, meta) KnapsackProblemTest::Log::logDump(out, depth, sort, meta)
+#define _POPULATION_DUMP_(meta) GMTest::populationDump(meta)
+
+#define _RUN_DUMP_(meta) GMTest::runDump(meta)
+
+#define _GENERAL_DUMP_(meta) GMTest::generalDump(meta)
+
+#define _LOG_DUMP_(out, depth, sort, meta) GMTest::Log::logDump(out, depth, sort, meta)

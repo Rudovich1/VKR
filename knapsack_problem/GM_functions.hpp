@@ -289,11 +289,11 @@ namespace CrossingoverFunctions
                     {
                         if (ch1.getFitness().getVal() > ch2.getFitness().getVal())
                         {
-                            generation.get().emplace_back(ch2);
+                            generation.get().emplace_back(ch1);
                         }
                         else
                         {
-                            generation.get().emplace_back(ch1);
+                            generation.get().emplace_back(ch2);
                         }
                     }
                     else
@@ -323,9 +323,9 @@ namespace SelectionFunctions
 {
     struct Base_SelectionFunction: public GeneticAlgorithm::Interfaces::SelectionFunctionWrapper<bool, size_t>
     {
-        virtual std::function<GeneticAlgorithm::Types::Generation<bool>(const GeneticAlgorithm::Types::Generation<bool>&)> operator()(size_t& num_chromosomes) override
+        virtual std::function<void(GeneticAlgorithm::Types::Generation<bool>&)> operator()(size_t& num_chromosomes) override
         {
-            return [num_chromosomes](const GeneticAlgorithm::Types::Generation<bool>& generation)
+            return [num_chromosomes](GeneticAlgorithm::Types::Generation<bool>& generation)
             {
                 std::random_device rd;
                 std::mt19937 gen(rd());
@@ -343,7 +343,7 @@ namespace SelectionFunctions
                     size_t index = std::lower_bound(pref_sum.begin(), pref_sum.end(), res) - pref_sum.begin() - 1;
                     chromosomes.emplace_back(generation.get()[index]);
                 }
-                return GeneticAlgorithm::Types::Generation<bool>(chromosomes);
+                generation.get() = std::move(chromosomes);
             };
         }
     };
@@ -458,15 +458,13 @@ namespace AnyFunctions
                 {
                     if (i.getFitness().getVal() > result_type.getFitness().getVal())
                     {
-                        #ifdef PRINT
-                            std::cout << result_type.getFitness().getVal() << '\n';
-                        #endif
                         result_type = i;   
                     }
                 }
             };
         }
     };
+    
 }
 
 namespace PoolingPopulations
@@ -484,8 +482,8 @@ namespace PoolingPopulations
                 {
                     pooling_generation.get().emplace_back(chromosome);
                 }
-                GeneticAlgorithm::Types::Generation<bool> generation = SelectionFunctions::Base_SelectionFunction()(num_chromosomes)(pooling_generation);
-                res.add(generation);
+                SelectionFunctions::Base_SelectionFunction()(num_chromosomes)(pooling_generation);
+                res.add(pooling_generation);
                 return res;
             };
         }
@@ -494,16 +492,20 @@ namespace PoolingPopulations
 
 namespace EndNode
 {
-    struct BaseEndNodeFunction: public GeneticAlgorithm::Interfaces::EndNodeFunctionWrapper<bool, size_t, double, GeneticAlgorithm::Types::Chromosome<bool>>
+    struct BaseEndNodeFunction: public GeneticAlgorithm::Interfaces::EndNodeFunctionWrapper<bool, size_t, double, GeneticAlgorithm::Types::Chromosome<bool>, size_t, std::chrono::steady_clock::time_point>
     {
-        virtual std::function<void()> operator()(size_t& counter, double& best_fitness, GeneticAlgorithm::Types::Chromosome<bool>& tmp_res) override
+        virtual std::function<void()> operator()(size_t& counter, double& best_fitness, GeneticAlgorithm::Types::Chromosome<bool>& tmp_res, size_t& num_node, std::chrono::steady_clock::time_point& start) override
         {
-            return [&counter, &best_fitness, &tmp_res]()
+            return [&counter, &best_fitness, &tmp_res, &num_node, &start]()
             {
                 counter = 0;
                 best_fitness = 0.;
                 tmp_res = GeneticAlgorithm::Types::Chromosome<bool>(tmp_res.get().size());
                 tmp_res.getFitness().setVal(0.);
+                #ifdef PRINT
+                    std::cout << "nodes left: " << --num_node << " time: " << std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - start).count() << '\n';
+                #endif
+                start = std::chrono::steady_clock::now();
             };
         }
     };

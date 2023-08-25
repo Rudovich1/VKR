@@ -3,7 +3,7 @@
 #include "knapsack_problem.hpp"
 #include "knapsack_problem_generator.hpp"
 #include "..\tools\benchmark.hpp"
-#include "..\tools\knapsack_problem_test.hpp"
+#include "..\tools\loger.hpp"
 #include <vector>
 #include <algorithm>
 #include <cmath>

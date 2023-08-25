@@ -1,7 +1,15 @@
 #pragma once
 
+// #define GM_LOG
+
 #include "types.hpp"
 #include "interfaces.hpp"
+#include "../tools/loger.hpp"
+#include "../tools/benchmark.hpp"
+
+#include <chrono>
+#include <string>
+#include <sstream>
 
 namespace GeneticAlgorithm
 {
@@ -120,15 +128,24 @@ namespace GeneticAlgorithm
         template<typename GeneType>
         void evolution(Types::Population<GeneType>& population, Conditions::BaseConditions<GeneType>& base_conditions)
         {
+            _START_TIMER_;
             for (Types::Chromosome<GeneType>& chromosome: population.get().back().get())
             {
                 if (chromosome.getFitness().isNull())
                 {
                     chromosome.getFitness().setVal(base_conditions.fitnessFunction_(chromosome));
                 }
+                #ifdef GM_LOG
+                    _CHROMOSOME_DUMP_(chromosome.getFitness().getVal(), "");
+                #endif
             }
+            #ifdef GM_LOG
+                _GENERATION_DUMP_(_STOP_TIMER_, "");
+            #endif
+
             while (!base_conditions.conditionsForStoppingFunction_(population))
             {
+                _START_TIMER_;
                 Types::Generation<GeneType> new_generation = population.get().back();
                 base_conditions.crossingoverFunction_(new_generation);
                 base_conditions.mutationFunction_(new_generation);
@@ -139,7 +156,17 @@ namespace GeneticAlgorithm
                         chromosome.getFitness().setVal(base_conditions.fitnessFunction_(chromosome));
                     }
                 }
-                population.add(base_conditions.selectionFunction_(new_generation));
+                base_conditions.selectionFunction_(new_generation);
+                
+                #ifdef GM_LOG
+                    for (const auto& chromosome: new_generation.get())
+                    {
+                        _CHROMOSOME_DUMP_(chromosome.getFitness().getVal(), "");
+                    }
+                    _GENERATION_DUMP_(_STOP_TIMER_, "");
+                #endif
+
+                population.add(new_generation);
                 base_conditions.anyFunction_(population);
             }   
         }
@@ -155,8 +182,10 @@ namespace GeneticAlgorithm
             Conditions::BaseConditions<GeneType> base_conditions_;
 
         public:
-            Node(const Conditions::BaseConditions<GeneType>& base_conditions_); 
+            Node(const Conditions::BaseConditions<GeneType>& base_conditions_, std::string id); 
             virtual Types::Population<GeneType> evolution() = 0;
+
+            std::string id_;
         };
 
         template<typename GeneType>
@@ -189,7 +218,7 @@ namespace GeneticAlgorithm
             typename Interfaces::startGenerationFunction<GeneType> startGenerationFunction_;
 
         public:
-            PopulationNode(const Conditions::BaseConditions<GeneType>& base_conditions, Interfaces::startGenerationFunction<GeneType> startGenerationFunction);
+            PopulationNode(const Conditions::BaseConditions<GeneType>& base_conditions, Interfaces::startGenerationFunction<GeneType> startGenerationFunction, std::string population_id = "");
             Types::Population<GeneType> evolution() override;
         };
 
@@ -200,16 +229,23 @@ namespace GeneticAlgorithm
 
 
         template<typename GeneType>
-        Node<GeneType>::Node(const Conditions::BaseConditions<GeneType>& base_conditions): base_conditions_(base_conditions) {}
+        Node<GeneType>::Node(const Conditions::BaseConditions<GeneType>& base_conditions, std::string id): base_conditions_(base_conditions), id_(id) {}
     
         template<typename GeneType>
-        UnaryNode<GeneType>::UnaryNode(const Conditions::BaseConditions<GeneType>& base_conditions, Node<GeneType>* node): Node<GeneType>(base_conditions), node_(node) {}
+        UnaryNode<GeneType>::UnaryNode(const Conditions::BaseConditions<GeneType>& base_conditions, Node<GeneType>* node): 
+            Node<GeneType>(base_conditions, node->id_), 
+            node_(node) {}
 
         template<typename GeneType>
         Types::Population<GeneType> UnaryNode<GeneType>::evolution()
         {
             Types::Population<GeneType> population = node_->evolution();
             Evolution::evolution(population, this->base_conditions_);
+
+            #ifdef GM_LOG
+                _POPULATION_DUMP_(std::string("Based on: (") + this->id_ + ")");
+            #endif
+
             this->base_conditions_.endNode_();
             return population;
         }
@@ -217,21 +253,33 @@ namespace GeneticAlgorithm
         template<typename GeneType>
         BinaryNode<GeneType>::BinaryNode(const Conditions::BaseConditions<GeneType>& base_conditions,
             Interfaces::poolingPopulations<GeneType> poolingPopulations, Node<GeneType>* node1, Node<GeneType>* node2): 
-            Node<GeneType>(base_conditions), poolingPopulations_(poolingPopulations), node1_(node1), node2_(node2) {}
+            Node<GeneType>(base_conditions, node1->id_ + " | " + node2->id_), 
+            poolingPopulations_(poolingPopulations), node1_(node1), node2_(node2) {}
 
         template<typename GeneType>
         Types::Population<GeneType> BinaryNode<GeneType>::evolution()
         {
             Types::Population<GeneType> population = poolingPopulations_(node1_->evolution(), node2_->evolution());
             Evolution::evolution(population, this->base_conditions_);
+
+            #ifdef GM_LOG
+                _POPULATION_DUMP_(std::string("Based on: (") + this->id_ + ")");
+            #endif
+
             this->base_conditions_.endNode_();
             return population;
         }
 
         template<typename GeneType>
         PopulationNode<GeneType>::PopulationNode(const Conditions::BaseConditions<GeneType>& base_conditions, 
-            Interfaces::startGenerationFunction<GeneType> startGenerationFunction): 
-            Node<GeneType>(base_conditions), startGenerationFunction_(startGenerationFunction) {}
+            Interfaces::startGenerationFunction<GeneType> startGenerationFunction, std::string population_id): 
+            Node<GeneType>(base_conditions, population_id), startGenerationFunction_(startGenerationFunction) 
+        {
+            if (this->id_.empty())
+            {
+                this->id_ = std::to_string(Counter::get_val());
+            }
+        }
 
         template <typename GeneType>
         Types::Population<GeneType> PopulationNode<GeneType>::evolution()
@@ -239,6 +287,11 @@ namespace GeneticAlgorithm
             Types::Population<GeneType> population(this->base_conditions_.buffer_size_);
             population.add(startGenerationFunction_());
             Evolution::evolution(population, this->base_conditions_);
+
+            #ifdef GM_LOG
+                _POPULATION_DUMP_(std::string("Population id: (") + this->id_ + ")");
+            #endif
+
             this->base_conditions_.endNode_();
             return population;
         }

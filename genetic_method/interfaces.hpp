@@ -34,7 +34,7 @@ namespace GeneticAlgorithm
         template<typename GeneType, typename ... Args>
         struct SelectionFunctionWrapper
         {
-            virtual std::function<Types::Generation<GeneType>(const Types::Generation<GeneType>&)> operator()(Args& ...) = 0;
+            virtual std::function<void(Types::Generation<GeneType>&)> operator()(Args& ...) = 0;
         }; // TODO Generation -> Population
 
         template<typename GeneType, typename ... Args>
@@ -89,7 +89,7 @@ namespace GeneticAlgorithm
         using startGenerationFunction = std::function<Types::Generation<GeneType>()>;
 
         template<typename GeneType>
-        using selectionFunction = std::function<Types::Generation<GeneType>(const Types::Generation<GeneType>&)>;
+        using selectionFunction = std::function<void(Types::Generation<GeneType>&)>;
 
         template<typename GeneType>
         using poolingPopulations = std::function<Types::Population<GeneType>(const Types::Population<GeneType>&, const Types::Population<GeneType>&)>;
