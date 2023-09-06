@@ -11,7 +11,7 @@ namespace GeneticAlgorithm
         struct DataGetterWrapper
         {
             virtual std::function<ReturnType(const Types::Population<GeneType>&)> operator()(Args& ...) = 0;
-        };
+        }; // TODO
 
         template<typename GeneType, typename ... Args>
         struct FitnessFunctionWrapper
@@ -23,7 +23,7 @@ namespace GeneticAlgorithm
         struct ProximityFunctionWrapper
         {
             virtual std::function<double(const Types::Chromosome<GeneType>&, const Types::Chromosome<GeneType>&)> operator()(Args& ...) = 0;
-        };
+        }; // TODO 
 
         template<typename GeneType, typename ... Args>
         struct StartGenerationFunctionWrapper

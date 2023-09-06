@@ -19,7 +19,7 @@ namespace GeneticAlgorithm
         struct BaseConditions
         {
             typename Interfaces::fitnessFunction<GeneType> fitnessFunction_;
-            typename Interfaces::proximityFunction<GeneType> proximityFunction_;
+            // typename Interfaces::proximityFunction<GeneType> proximityFunction_;
             typename Interfaces::selectionFunction<GeneType> selectionFunction_;
             typename Interfaces::mutationFunction<GeneType> mutationFunction_;
             typename Interfaces::crossingoverFunction<GeneType> crossingoverFunction_;
@@ -32,7 +32,7 @@ namespace GeneticAlgorithm
 
             BaseConditions(
                 typename Interfaces::fitnessFunction<GeneType> fitnessFunction,
-                typename Interfaces::proximityFunction<GeneType> proximityFunction,
+                // typename Interfaces::proximityFunction<GeneType> proximityFunction,
                 typename Interfaces::selectionFunction<GeneType> selectionFunction,
                 typename Interfaces::mutationFunction<GeneType> mutationFunction,
                 typename Interfaces::crossingoverFunction<GeneType> crossingoverFunction,
@@ -75,7 +75,7 @@ namespace GeneticAlgorithm
         template<typename GeneType>
         BaseConditions<GeneType>::BaseConditions(
             typename Interfaces::fitnessFunction<GeneType> fitnessFunction,
-            typename Interfaces::proximityFunction<GeneType> proximityFunction,
+            // typename Interfaces::proximityFunction<GeneType> proximityFunction,
             typename Interfaces::selectionFunction<GeneType> selectionFunction,
             typename Interfaces::mutationFunction<GeneType> mutationFunction,
             typename Interfaces::crossingoverFunction<GeneType> crossingoverFunction,
@@ -83,13 +83,13 @@ namespace GeneticAlgorithm
             typename Interfaces::anyFunction<GeneType> anyFunction,
             typename Interfaces::endNode<GeneType> endNode,
             size_t buffer_size, size_t generation_size, size_t chromosome_size):
-            fitnessFunction_(fitnessFunction), proximityFunction_(proximityFunction), selectionFunction_(selectionFunction), 
-            mutationFunction_(mutationFunction), crossingoverFunction_(crossingoverFunction), conditionsForStoppingFunction_(conditionsForStoppingFunction),
+            fitnessFunction_(fitnessFunction), selectionFunction_(selectionFunction), mutationFunction_(mutationFunction), 
+            crossingoverFunction_(crossingoverFunction), conditionsForStoppingFunction_(conditionsForStoppingFunction),
             anyFunction_(anyFunction), endNode_(endNode), buffer_size_(buffer_size), generation_size_(generation_size), chromosome_size_(chromosome_size) {}
 
         template<typename GeneType>
         BaseConditions<GeneType>::BaseConditions(const BaseConditions<GeneType>& base_conditions):
-            fitnessFunction_(base_conditions.fitnessFunction_), proximityFunction_(base_conditions.proximityFunction_),
+            fitnessFunction_(base_conditions.fitnessFunction_),
             selectionFunction_(base_conditions.selectionFunction_), mutationFunction_(base_conditions.mutationFunction_), 
             crossingoverFunction_(base_conditions.crossingoverFunction_), conditionsForStoppingFunction_(base_conditions.conditionsForStoppingFunction_),
             anyFunction_(base_conditions.anyFunction_), endNode_(base_conditions.endNode_), buffer_size_(base_conditions.buffer_size_), 
@@ -196,6 +196,7 @@ namespace GeneticAlgorithm
         public:
             UnaryNode(const Conditions::BaseConditions<GeneType>& base_conditions_, Node<GeneType>* node);
             Types::Population<GeneType> evolution() override;
+            ~UnaryNode();
         };
 
         template<typename GeneType>
@@ -210,6 +211,7 @@ namespace GeneticAlgorithm
                 Node<GeneType>* node1, Node<GeneType>* node2);
 
             Types::Population<GeneType> evolution() override;
+            ~BinaryNode();
         };
 
         template<typename GeneType>
@@ -251,6 +253,13 @@ namespace GeneticAlgorithm
         }
 
         template<typename GeneType>
+        UnaryNode<GeneType>::~UnaryNode()
+        {
+            delete node_;
+            node_ = nullptr;
+        }
+
+        template<typename GeneType>
         BinaryNode<GeneType>::BinaryNode(const Conditions::BaseConditions<GeneType>& base_conditions,
             Interfaces::poolingPopulations<GeneType> poolingPopulations, Node<GeneType>* node1, Node<GeneType>* node2): 
             Node<GeneType>(base_conditions, node1->id_ + " | " + node2->id_), 
@@ -268,6 +277,14 @@ namespace GeneticAlgorithm
 
             this->base_conditions_.endNode_();
             return population;
+        }
+
+        template<typename GeneType>
+        BinaryNode<GeneType>::~BinaryNode()
+        {
+            delete node1_;
+            delete node2_;
+            node1_ = node2_ = nullptr;
         }
 
         template<typename GeneType>
