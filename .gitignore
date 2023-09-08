@@ -33,3 +33,13 @@
 
 *.txt
 *.json
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.pdf
+*.sty
+*.gz
+*.tex
+*.toc
+*.PNG

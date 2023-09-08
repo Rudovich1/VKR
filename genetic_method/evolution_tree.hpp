@@ -128,7 +128,9 @@ namespace GeneticAlgorithm
         template<typename GeneType>
         void evolution(Types::Population<GeneType>& population, Conditions::BaseConditions<GeneType>& base_conditions)
         {
-            _START_TIMER_;
+            #ifdef GM_LOG
+                _START_TIMER_;
+            #endif
             for (Types::Chromosome<GeneType>& chromosome: population.get().back().get())
             {
                 if (chromosome.getFitness().isNull())
@@ -145,7 +147,9 @@ namespace GeneticAlgorithm
 
             while (!base_conditions.conditionsForStoppingFunction_(population))
             {
-                _START_TIMER_;
+                #ifdef GM_LOG
+                    _START_TIMER_;
+                #endif
                 Types::Generation<GeneType> new_generation = population.get().back();
                 base_conditions.crossingoverFunction_(new_generation);
                 base_conditions.mutationFunction_(new_generation);

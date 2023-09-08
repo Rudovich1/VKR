@@ -1,8 +1,12 @@
+#define GM_LOG
+
+#include "../../tools/loger.hpp"
 #include "../../knapsack_problem/knapsack_problem.hpp"
 #include "functions.hpp"
 
 #include <chrono>
 #include <iostream>
+#include <fstream>
 
 int main()
 {
@@ -35,6 +39,12 @@ int main()
     GeneticAlgorithm::General<bool, GeneticAlgorithm::Types::Chromosome<bool>> general(node, ResultFunction()(kp));
 
     auto result = general.calc();
+
+    std::ofstream out("log.txt");
+
+    _RUN_DUMP_("");
+    _GENERAL_DUMP_("");
+    _LOG_DUMP_(out, 3, false, "");
 
     std::cout << kp;
     std::cout << "Result: " << result.getFitness().getVal() - 1 << '\n';
