@@ -30,13 +30,11 @@
 *.exe
 *.out
 *.app
-
 *.txt
 *.json
 *.aux
 *.fdb_latexmk
 *.fls
-*.log
 *.pdf
 *.sty
 *.gz
