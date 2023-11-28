@@ -1,5 +1,5 @@
-#define PRINT
-#define GM_LOG
+// #define PRINT
+// #define GM_LOG
 
 #include "GM_functions.hpp"
 #include "knapsack_problem/knapsack_problem.hpp"

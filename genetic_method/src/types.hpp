@@ -5,8 +5,8 @@
 #include <iostream>
 #include <exception>
 
-#include "../tools/buffer_type.hpp"
-#include "../tools/nullable_type.hpp"
+#include "tools/buffer_type.hpp"
+#include "tools/nullable_type.hpp"
 
 namespace GeneticAlgorithm
 {
@@ -109,14 +109,19 @@ namespace GeneticAlgorithm
             Generations_& get();
             const Generations_& get() const;
 
-            void add(const Generation<GeneType>& generation);
-            void add(Generation<GeneType>&& generation);
+            Population& add(const Generation<GeneType>& generation);
+            Population& add(Generation<GeneType>&& generation);
 
         private:
             Generations_ generations_;
-        };
-        
+        };        
+    } // end namespace Types
+} // end namespace GeneticAlgorithm
 
+namespace GeneticAlgorithm
+{
+    namespace Types
+    {
         template<typename GeneType>
         Gene<GeneType>::Gene(): data_() {}
 
@@ -366,15 +371,17 @@ namespace GeneticAlgorithm
         }
 
         template<typename GeneType>
-        void Population<GeneType>::add(const Generation<GeneType>& generation)
+        Population<GeneType>& Population<GeneType>::add(const Generation<GeneType>& generation)
         {
             generations_.add(generation);
+            return *this;
         }
 
         template<typename GeneType>
-        void Population<GeneType>::add(Generation<GeneType>&& generation)
+        Population<GeneType>& Population<GeneType>::add(Generation<GeneType>&& generation)
         {
             generations_.add(generation);
+            return *this;
         }
     } // end namespace Types
 } // end namespace GeneticAlgorithm
