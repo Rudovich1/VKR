@@ -27,10 +27,12 @@ namespace GeneticAlgorithm
     Types::Chromosome<GeneType> General<GeneType>::calc()
     {
         Types::Population<GeneType> res_population = node_->evolution();
+        node_.reset();
+
         Types::Chromosome<GeneType>& best_res = res_population.get().back().get()[0];
         for (Types::Chromosome<GeneType>& chormosome: res_population.get().back().get())
         {
-            if (chormosome.getFitness().getVal() > best_res.getFitness().getVal()) {best_res = chormosome;}
+            if (chormosome.getFitness().value() > best_res.getFitness().value()) {best_res = chormosome;}
         }
         return best_res;
     }

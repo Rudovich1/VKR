@@ -5,9 +5,11 @@
 
 #include <chrono>
 #include <string>
-#include <sstream>
 #include <memory>
 #include <array>
+#include <thread>
+#include <atomic>
+#include <iostream>
 
 namespace GeneticAlgorithm
 {
@@ -24,7 +26,10 @@ namespace GeneticAlgorithm
             typename Interfaces::conditionsForStoppingFunction<GeneType> conditionsForStoppingFunction_;
             typename Interfaces::anyFunction<GeneType> anyFunction_;
             typename Interfaces::endNode<GeneType> endNode_;
+            typename Interfaces::startNode<GeneType> startNode_;
             std::string id_;
+
+            void cerrInfo(std::string) const;
 
         public:
             Node(std::string id);
@@ -36,6 +41,7 @@ namespace GeneticAlgorithm
             Node& setConditionsForStoppingFunction( typename Interfaces::conditionsForStoppingFunction<GeneType>);
             Node& setAnyFunction(typename Interfaces::anyFunction<GeneType>);
             Node& setEndNode(typename Interfaces::endNode<GeneType>);
+            Node& setStartNode(typename Interfaces::startNode<GeneType>);
 
             void evolution(Types::Population<GeneType>&);
 
@@ -120,9 +126,9 @@ namespace GeneticAlgorithm
         template<typename GeneType>
         struct DefaultSelectionFunctionWrapper final: public Interfaces::SelectionFunctionWrapper<GeneType>
         {
-            std::function<Types::Generation<GeneType>(const Types::Generation<GeneType>&)> operator()() const override
+            std::function<Types::Generation<GeneType>(Types::Generation<GeneType>&)> operator()() const override
             {
-                return [](const Types::Generation<GeneType>& generation) {return generation;};
+                return [](Types::Generation<GeneType>& generation) {return std::move(generation);};
             }
         };
 
@@ -138,9 +144,11 @@ namespace GeneticAlgorithm
         template<typename GeneType, size_t num_populations>
         struct DefaultPoolingPopulationsWrapper final: public Interfaces::PoolingPopulationsWrapper<GeneType, num_populations>
         {
-            std::function<Types::Population<GeneType>(const std::array<Types::Population<GeneType>, num_populations>&)> operator()() const override
+            std::function<Types::Population<GeneType>(
+                std::array<Types::Population<GeneType>, num_populations>&)> operator()() const override
             {
-                return [](const std::array<Types::Population<GeneType>, num_populations>& populations) {return populations[0];};
+                return [](std::array<Types::Population<GeneType>, num_populations>& populations) 
+                    {return std::move(populations[0]);};
             }
         };
 
@@ -156,32 +164,32 @@ namespace GeneticAlgorithm
         template<typename GeneType>
         struct DefaultCrossingoverFunctionWrapper final: public Interfaces::CrossingoverFunctionWrapper<GeneType>
         {
-            std::function<Types::Generation<GeneType>(Types::Population<GeneType>&)> operator()() const override
+            std::function<Types::Generation<GeneType>(const Types::Population<GeneType>&)> operator()() const override
             {
-                return [](Types::Population<GeneType>& population) {return population.get().back();};
+                return [](const Types::Population<GeneType>& population) {return population.get().back();};
             }
         };
-
-        // template<typename GeneType>
-        // struct DefaultResultFunctionWrapper final: public Interfaces::ResultFunctionWrapper<GeneType, double>
-        // {
-        //     std::function<double(const Types::Population<GeneType>&)> operator()() const override
-        //     {
-        //         return [](const Types::Population<GeneType>&) {return 0.;};
-        //     }
-        // };
 
         template<typename GeneType>
         struct DefaultAnyFunctionWrapper final: public Interfaces::AnyFunctionWrapper<GeneType>
         {
-            std::function<void(const Types::Population<GeneType>&)> operator()() const override
+            std::function<void(Types::Population<GeneType>&)> operator()() const override
             {
-                return [](const Types::Population<GeneType>&) {};
+                return [](Types::Population<GeneType>&) {};
             }
         };
 
         template<typename GeneType>
         struct DefaultEndNodeFunctionWrapper final: public Interfaces::EndNodeFunctionWrapper<GeneType>
+        {
+            std::function<void()> operator()() const override
+            {
+                return [](){};
+            }
+        };
+
+        template<typename GeneType>
+        struct DefaultStartNodeFunctionWrapper final: public Interfaces::StartNodeFunctionWrapper<GeneType>
         {
             std::function<void()> operator()() const override
             {
@@ -201,7 +209,8 @@ namespace GeneticAlgorithm
             crossingoverFunction_(DefaultFunctions::DefaultCrossingoverFunctionWrapper<GeneType>()()),
             conditionsForStoppingFunction_(DefaultFunctions::DefaultConditionsForStoppingWrapper<GeneType>()()),
             anyFunction_(DefaultFunctions::DefaultAnyFunctionWrapper<GeneType>()()),
-            endNode_(DefaultFunctions::DefaultEndNodeFunctionWrapper<GeneType>()()) {}
+            endNode_(DefaultFunctions::DefaultEndNodeFunctionWrapper<GeneType>()()),
+            startNode_(DefaultFunctions::DefaultStartNodeFunctionWrapper<GeneType>()()) {}
 
         template<typename GeneType>
         Node<GeneType>& Node<GeneType>::setFitnessFunction(typename Interfaces::fitnessFunction<GeneType> fun)
@@ -253,13 +262,20 @@ namespace GeneticAlgorithm
         }
 
         template<typename GeneType>
+        Node<GeneType>& Node<GeneType>::setStartNode(typename Interfaces::startNode<GeneType> fun)
+        {
+            startNode_ = std::move(fun);
+            return *this;
+        }
+
+        template<typename GeneType>
         void Node<GeneType>::evolution(Types::Population<GeneType>& population)
         {
             for (Types::Chromosome<GeneType>& chromosome: population.get().back().get())
             {
-                if (chromosome.getFitness().isNull())
+                if (!chromosome.getFitness().has_value())
                 {
-                    chromosome.getFitness().setVal(fitnessFunction_(chromosome));
+                    chromosome.getFitness() = fitnessFunction_(chromosome);
                 }
             }
             while (!conditionsForStoppingFunction_(population))
@@ -268,26 +284,36 @@ namespace GeneticAlgorithm
                 mutationFunction_(new_generation);
                 for (Types::Chromosome<GeneType>& chromosome: new_generation.get())
                 {
-                    if (chromosome.getFitness().isNull())
+                    if (!chromosome.getFitness().has_value())
                     {
-                        chromosome.getFitness().setVal(fitnessFunction_(chromosome));
+                        chromosome.getFitness() = fitnessFunction_(chromosome);
                     }
                 }
                 population.add(selectionFunction_(new_generation));
                 anyFunction_(population);
             }
-        } 
+        }
+
+        template<typename GeneType>
+        void Node<GeneType>::cerrInfo(std::string info) const
+        {
+            std::cerr << id_ << ": " << info << '\n';
+        }
 
 
         template<typename GeneType>
         UnaryNode<GeneType>::UnaryNode(std::string id, std::unique_ptr<Node<GeneType>>&& node): 
-            Node<GeneType>(id), node_(node) {}
+            Node<GeneType>(id), node_(std::move(node)) {}
 
         template<typename GeneType>
         Types::Population<GeneType> UnaryNode<GeneType>::evolution()
         {
             Types::Population<GeneType> population = node_->evolution();
+            node_.reset();
+
+            this->startNode_();
             Node<GeneType>::evolution(population);
+
             this->endNode_();
             return population;
         }
@@ -296,7 +322,7 @@ namespace GeneticAlgorithm
         template<typename GeneType, size_t num_nodes>
         K_Node<GeneType, num_nodes>::K_Node(std::string id,
             std::array<std::unique_ptr<Node<GeneType>>, num_nodes>&& nodes):
-            Node<GeneType>(id), nodes_(nodes) {}
+            Node<GeneType>(id), nodes_(std::move(nodes)) {}
 
         template<typename GeneType, size_t num_nodes>
         K_Node<GeneType, num_nodes>& K_Node<GeneType, num_nodes>::setPoolingPopulations(
@@ -309,12 +335,30 @@ namespace GeneticAlgorithm
         template<typename GeneType, size_t num_nodes>
         Types::Population<GeneType> K_Node<GeneType, num_nodes>::evolution()
         {
-            std::array<Types::Population<GeneType>, num_nodes> populations(0);
+            std::array<Types::Population<GeneType>, num_nodes> populations;
+            std::vector<std::thread> treads;
+
+            std::function evolute_node = 
+            [](Types::Population<GeneType>& population, std::unique_ptr<GeneticAlgorithm::EvolutionTree::Node<GeneType>>& node_ptr)
+            {
+                population = std::move(node_ptr->evolution());
+            };
+
             for (size_t i = 0; i < num_nodes; ++i)
             {
-                populations[i] = nodes_[i]->evolution();
+                treads.push_back(std::thread(evolute_node, std::ref(populations[i]), std::ref(nodes_[i])));
+            }
+            for (size_t i = 0; i < num_nodes; ++i)
+            {
+                treads[i].join();
             }
             Types::Population<GeneType> population = poolingPopulations_(populations);
+            for (size_t i = 0; i < num_nodes; ++i)
+            {
+                nodes_[i].reset();
+            }
+
+            this->startNode_();
             Node<GeneType>::evolution(population);
             this->endNode_();
             return population;
@@ -335,8 +379,12 @@ namespace GeneticAlgorithm
         template<typename GeneType>
         Types::Population<GeneType> PopulationNode<GeneType>::evolution()
         {
+            this->startNode_();
+
             Types::Population<GeneType> population = startPopulationFunction_();
-            Node<GeneType>::evolution(population);
+            Node<GeneType>::evolution(population);            
+
+            this->endNode_();
             return population;
         }
     } // end namespace EvolutionTree

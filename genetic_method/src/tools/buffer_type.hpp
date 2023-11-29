@@ -6,7 +6,7 @@
 template<typename Type>
 class BufferType
 {
-    const size_t max_size_;
+    size_t max_size_;
     size_t processed_size_;
     std::deque<Type> buff_;
 
@@ -17,10 +17,8 @@ public:
     BufferType(const BufferType<Type>& buffer);
     BufferType(BufferType<Type>&& buffer);
 
-    // template<typename NewType>
-    // BufferType<NewType>& operator=(const BufferType<NewType>& buffer);
-    // template<typenmae NewType>
-    // BufferType<NewType>& operator=(BufferType<NewType>&& buffer);
+    BufferType& operator=(const BufferType& buffer);
+    BufferType& operator=(BufferType&& buffer);
 
     void add(const Type& new_elem);
     size_t buff_size() const;
@@ -44,6 +42,30 @@ BufferType<Type>::BufferType(const BufferType<Type>& buffer):
 template<typename Type>
 BufferType<Type>::BufferType(BufferType<Type>&& buffer): 
     max_size_(std::move(buffer.max_size_)), processed_size_(std::move(buffer.processed_size_)), buff_(std::move(buffer.buff_)) {}
+
+template<typename Type>
+BufferType<Type>& BufferType<Type>::operator=(const BufferType<Type>& buff)
+{
+    if (this != &buff)
+    {
+        max_size_ = buff.max_size_;
+        processed_size_ = buff.processed_size_;
+        buff_ = buff.buff_;
+    }
+    return *this;
+}
+
+template<typename Type>
+BufferType<Type>& BufferType<Type>::operator=(BufferType<Type>&& buff)
+{
+    if (this != &buff)
+    {
+        max_size_ = buff.max_size_;
+        processed_size_ = buff.processed_size_;
+        buff_ = std::move(buff.buff_);
+    }
+    return *this;
+}
 
 template<typename Type>
 void BufferType<Type>::add(const Type &new_elem)
