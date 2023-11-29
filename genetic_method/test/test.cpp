@@ -7,11 +7,12 @@
 #include <memory>
 #include <climits>
 #include <random>
-
+#include <mutex>
 
 using namespace GeneticAlgorithm;
 using namespace Interfaces;
 using namespace Types;
+using namespace std;
 
 
 const size_t NUM_POPULATIONS = 10;
@@ -22,7 +23,8 @@ double cross_coef = 0.8;
 size_t buffer_size = 1;
 size_t chromosome_size = 5;
 KnapsackProblem kp(5, {{1, 1}, {1, 2}, {2, 1}, {2, 2}, {3, 3}}, 3);
-std::chrono::seconds work_time(2);
+std::chrono::seconds work_time(1);
+std::mutex cout_mut;
 
 
 struct FitnessFunction: public FitnessFunctionWrapper<bool, KnapsackProblem&>
@@ -260,6 +262,64 @@ struct EndNodeFunction: public EndNodeFunctionWrapper<bool, std::shared_ptr<std:
 };
 
 
+struct NewGenerationLog: public Loger::NewGenerationLogWrapper<bool, std::mutex&>
+{
+    virtual std::function<void(const Generation<bool>&, const string&)> operator()(std::mutex& mut) const override
+    {
+        return [&mut](const Generation<bool>& generation, const string& id)
+        {
+            double mean = 0.;
+            for (const auto& chromosome: generation.get())
+            {
+                mean += chromosome.getFitness().value();
+            }
+            mean /= generation.get().size();
+
+            const std::lock_guard<std::mutex> lg(mut);
+            std::cout << "in \"" << id << "\" mean: " << mean << '\n';
+        };
+    }
+};
+
+struct StartNodeLog: public Loger::StartNodeLogWrapper<bool, std::mutex&>
+{
+    virtual std::function<void(const Population<bool>&, const string&)> operator()(std::mutex& mut) const override
+    {
+        return [&mut](const Population<bool>& population, const string& id)
+        {
+            double mean = 0.;
+            for (const auto& chromosome: population.get().back().get())
+            {
+                mean += chromosome.getFitness().value();
+            }
+            mean /= population.get().back().get().size();
+
+            const std::lock_guard<std::mutex> lg(mut);
+            std::cout << "in \"" << id << "\" start mean: " << mean << '\n';
+        };
+    }
+};
+
+struct EndNodeLog: public Loger::EndNodeLogWrapper<bool, std::mutex&>
+{
+    virtual std::function<void(const Population<bool>&, const string&)> operator()(std::mutex& mut) const override
+    {
+        return [&mut](const Population<bool>& population, const string& id)
+        {
+            double mean = 0.;
+            for (const auto& chromosome: population.get().back().get())
+            {
+                mean += max(0., chromosome.getFitness().value() - 1);
+            }
+            mean /= population.get().back().get().size();
+
+            const std::lock_guard<std::mutex> lg(mut);
+            std::cout << "in \"" << id << "\" end mean: " << mean << '\n';
+        };
+    }
+};
+
+
 GeneticAlgorithm::EvolutionTree::Node<bool>& setFuns(GeneticAlgorithm::EvolutionTree::Node<bool>& node)
 {
     std::shared_ptr start_work = std::make_shared<std::chrono::steady_clock::time_point>();
@@ -268,8 +328,9 @@ GeneticAlgorithm::EvolutionTree::Node<bool>& setFuns(GeneticAlgorithm::Evolution
         setSelectionFunction(SelectionFunction()(generation_size)).
         setCrossingoverFunction(HomogeneousCrossingoverFunction()(cross_coef, num_marriage_couples)).
         setConditionsForStoppingFunction(ConditionsForStopping()(start_work, work_time)).
-        setStartNode(StartNodeFunction()(start_work));
-        // setEndNode(EndNodeFunction()(start_work));
+        setStartNode(StartNodeFunction()(start_work)).
+        // setStartNodeLog(StartNodeLog()(cout_mut)).
+        setEndNodeLog(EndNodeLog()(cout_mut));
     return node;
 }
 
