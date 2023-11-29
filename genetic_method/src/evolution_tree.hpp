@@ -109,8 +109,10 @@ namespace GeneticAlgorithm
 
             virtual Types::Population<GeneType> evolution() override;
         };
-    } // end namespace EvolutionTree
-} // end namespace GeneticAlgorithm
+    } 
+    // end namespace EvolutionTree
+} 
+// end namespace GeneticAlgorithm
 
 namespace GeneticAlgorithm
 {
@@ -218,9 +220,9 @@ namespace GeneticAlgorithm
 
             for (Types::Chromosome<GeneType>& chromosome: population.get().back().get())
             {
-                if (!chromosome.getFitness().has_value())
+                if (!chromosome.optionalFitness().has_value())
                 {
-                    chromosome.getFitness() = fitnessFunction_.value()(chromosome);
+                    chromosome.optionalFitness() = fitnessFunction_.value()(chromosome);
                 }
             }
             while (!conditionsForStoppingFunction_.value()(population))
@@ -234,10 +236,10 @@ namespace GeneticAlgorithm
 
                 for (Types::Chromosome<GeneType>& chromosome: new_generation.get())
                 {
-                    if (!chromosome.getFitness().has_value())
-                    {
-                        chromosome.getFitness() = fitnessFunction_.value()(chromosome);
-                    }
+                    if (!chromosome.optionalFitness().has_value())
+                {
+                    chromosome.optionalFitness() = fitnessFunction_.value()(chromosome);
+                }
                 }
 
                 if (selectionFunction_.has_value()) {population.add(selectionFunction_.value()(new_generation));}

@@ -3,7 +3,7 @@
 #include <vector>
 #include <functional>
 #include <iostream>
-#include <exception>
+#include <stdexcept>
 #include <optional>
 
 #include "tools/buffer_type.hpp"
@@ -60,8 +60,10 @@ namespace GeneticAlgorithm
             Genes_& get();
             const Genes_& get() const;
 
-            std::optional<double>& getFitness();
-            const std::optional<double>& getFitness() const;
+            std::optional<double>& optionalFitness();
+
+            double& fitness();
+            const double& fitness() const;
 
         private:
             Genes_ genes_;
@@ -265,13 +267,21 @@ namespace GeneticAlgorithm
         }
 
         template<typename GeneType>
-        std::optional<double>& Chromosome<GeneType>::getFitness()
+        double& Chromosome<GeneType>::fitness()
         {
-            return fitness_;
+            if (!fitness_.has_value()) {throw std::logic_error("fitness is NULL");}
+            return fitness_.value();
         }
 
         template<typename GeneType>
-        const std::optional<double>& Chromosome<GeneType>::getFitness() const
+        const double& Chromosome<GeneType>::fitness() const
+        {
+            if (!fitness_.has_value()) {throw std::logic_error("fitness is NULL");}
+            return fitness_.value();
+        }
+
+        template<typename GeneType>
+        std::optional<double>& Chromosome<GeneType>::optionalFitness()
         {
             return fitness_;
         }
@@ -368,7 +378,7 @@ namespace GeneticAlgorithm
         Population<GeneType>::Population(typename Population<GeneType>::Population_&& population): generations_(std::move(population.generations_)) {}
 
         template<typename GeneType>
-        Population<GeneType>& Population<GeneType>::operator=(const Population<GeneType>& population)
+        typename Population<GeneType>::Population_& Population<GeneType>::operator=(const typename Population<GeneType>::Population_& population)
         {
             if (this != &population)
             {
@@ -378,7 +388,7 @@ namespace GeneticAlgorithm
         }
 
         template<typename GeneType>
-        Population<GeneType>& Population<GeneType>::operator=(Population<GeneType>&& population)
+        typename Population<GeneType>::Population_& Population<GeneType>::operator=(typename Population<GeneType>::Population_&& population)
         {
             if (this != &population)
             {

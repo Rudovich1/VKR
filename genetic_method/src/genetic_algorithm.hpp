@@ -32,7 +32,7 @@ namespace GeneticAlgorithm
         Types::Chromosome<GeneType>& best_res = res_population.get().back().get()[0];
         for (Types::Chromosome<GeneType>& chormosome: res_population.get().back().get())
         {
-            if (chormosome.getFitness().value() > best_res.getFitness().value()) {best_res = chormosome;}
+            if (chormosome.fitness() > best_res.fitness()) {best_res = chormosome;}
         }
         return best_res;
     }

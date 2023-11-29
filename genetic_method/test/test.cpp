@@ -99,7 +99,7 @@ struct MutationFunction: public MutationFunctionWrapper<bool, double, size_t>
                 {
                     if (urd(gen) < mutation_coef)
                     {
-                        generation.get()[i].getFitness().reset();
+                        generation.get()[i].optionalFitness().reset();
                         gene.get() = !gene.get();
                     }
                 }
@@ -139,7 +139,7 @@ struct HomogeneousCrossingoverFunction: public BaseCrossingoverFunction<size_t>
                 const GeneticAlgorithm::Types::Chromosome<bool>& ch2 = last_generation.get()[ch2_num];
                 if (urd(gen) > crossingover_coef)
                 {
-                    if (ch1.getFitness().value() > ch2.getFitness().value())
+                    if (ch1.fitness() > ch2.fitness())
                     {
                         chromosomes.emplace_back(ch1);
                     }
@@ -150,7 +150,7 @@ struct HomogeneousCrossingoverFunction: public BaseCrossingoverFunction<size_t>
                 }
                 else
                 {
-                    double ch_coef = ch1.getFitness().value() / (ch1.getFitness().value() + ch2.getFitness().value());
+                    double ch_coef = ch1.fitness() / (ch1.fitness() + ch2.fitness());
                     GeneticAlgorithm::Types::Chromosome<bool>::Genes_ genes;
                     for (size_t j = 0; j < ch1.get().size(); ++j)
                     {
@@ -184,7 +184,7 @@ struct SelectionFunction: public SelectionFunctionWrapper<bool, size_t>
             std::vector<double> pref_sum(1, 0.);
             for (const auto& i: generation.get())
             {
-                pref_sum.emplace_back(pref_sum.back() + i.getFitness().value() + 1);
+                pref_sum.emplace_back(pref_sum.back() + i.fitness() + 1);
             }
             std::uniform_real_distribution<double> urd(0., pref_sum.back());
             GeneticAlgorithm::Types::Generation<bool>::Chromosomes_ chromosomes;
@@ -231,7 +231,7 @@ struct PoolingFunction: public PoolingPopulationsWrapper<bool, NUM_POPULATIONS, 
             }
             std::sort(generation.begin(), generation.end(), [](const Chromosome<bool>& a, const Chromosome<bool>& b)
             {
-                return a.getFitness().value() > b.getFitness().value();
+                return a.fitness() > b.fitness();
             });
             if (generation.size() > generation_size)
             {
@@ -262,44 +262,6 @@ struct EndNodeFunction: public EndNodeFunctionWrapper<bool, std::shared_ptr<std:
 };
 
 
-struct NewGenerationLog: public Loger::NewGenerationLogWrapper<bool, std::mutex&>
-{
-    virtual std::function<void(const Generation<bool>&, const string&)> operator()(std::mutex& mut) const override
-    {
-        return [&mut](const Generation<bool>& generation, const string& id)
-        {
-            double mean = 0.;
-            for (const auto& chromosome: generation.get())
-            {
-                mean += chromosome.getFitness().value();
-            }
-            mean /= generation.get().size();
-
-            const std::lock_guard<std::mutex> lg(mut);
-            std::cout << "in \"" << id << "\" mean: " << mean << '\n';
-        };
-    }
-};
-
-struct StartNodeLog: public Loger::StartNodeLogWrapper<bool, std::mutex&>
-{
-    virtual std::function<void(const Population<bool>&, const string&)> operator()(std::mutex& mut) const override
-    {
-        return [&mut](const Population<bool>& population, const string& id)
-        {
-            double mean = 0.;
-            for (const auto& chromosome: population.get().back().get())
-            {
-                mean += chromosome.getFitness().value();
-            }
-            mean /= population.get().back().get().size();
-
-            const std::lock_guard<std::mutex> lg(mut);
-            std::cout << "in \"" << id << "\" start mean: " << mean << '\n';
-        };
-    }
-};
-
 struct EndNodeLog: public Loger::EndNodeLogWrapper<bool, std::mutex&>
 {
     virtual std::function<void(const Population<bool>&, const string&)> operator()(std::mutex& mut) const override
@@ -309,7 +271,7 @@ struct EndNodeLog: public Loger::EndNodeLogWrapper<bool, std::mutex&>
             double mean = 0.;
             for (const auto& chromosome: population.get().back().get())
             {
-                mean += max(0., chromosome.getFitness().value() - 1);
+                mean += max(0., chromosome.fitness() - 1);
             }
             mean /= population.get().back().get().size();
 
@@ -376,7 +338,7 @@ int main()
 
         std::ofstream out("log.txt");
         std::cout << kp;
-        std::cout << "Result: " << result.getFitness().value() - 1 << '\n';
+        std::cout << "Result: " << result.fitness() - 1 << '\n';
         for (auto i: result.get())
         {
             std::cout << i.get() << " ";
