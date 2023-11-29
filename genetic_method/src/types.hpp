@@ -44,6 +44,7 @@ namespace GeneticAlgorithm
             using Genes_ = std::vector<Gene<GeneType>>;
             using Chromosome_ = Chromosome<GeneType>;
 
+            Chromosome();
             Chromosome(size_t size);
             Chromosome(const Genes_& genes);
             Chromosome(Genes_&& genes);
@@ -74,6 +75,7 @@ namespace GeneticAlgorithm
             using Chromosomes_ = std::vector<Chromosome<GeneType>>;
             using Generation_ = Generation<GeneType>;
 
+            Generation();
             Generation(size_t generation_size, size_t chromosome_size);
             Generation(const Chromosomes_& chromosomes);
             Generation(Chromosomes_&& chromosomes);
@@ -186,6 +188,9 @@ namespace GeneticAlgorithm
         }
 
         template<typename GeneType>
+        Chromosome<GeneType>::Chromosome(): genes_(1), fitness_() {}
+
+        template<typename GeneType>
         Chromosome<GeneType>::Chromosome(size_t size): genes_(size), fitness_() {}
 
         template<typename GeneType>
@@ -270,6 +275,9 @@ namespace GeneticAlgorithm
         {
             return fitness_;
         }
+
+        template<typename GeneType>
+        Generation<GeneType>::Generation(): chromosomes_(1) {}
 
         template<typename GeneType>
         Generation<GeneType>::Generation(size_t generation_size, size_t chromosome_size): chromosomes_(generation_size, chromosome_size) {}
