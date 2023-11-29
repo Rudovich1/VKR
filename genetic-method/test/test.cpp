@@ -1,4 +1,4 @@
-#include "../../knapsack_problem/knapsack_problem.hpp"
+#include "../../knapsack-problem/knapsack_problem.hpp"
 #include "../src/genetic_algorithm.hpp"
 
 #include <chrono>
@@ -336,7 +336,6 @@ int main()
         GeneticAlgorithm::General<bool> general(std::move(final_node));
         auto result = general.calc();
 
-        std::ofstream out("log.txt");
         std::cout << kp;
         std::cout << "Result: " << result.fitness() - 1 << '\n';
         for (auto i: result.get())
@@ -352,18 +351,4 @@ int main()
     {
         std::cerr << "unknown error";
     }
-    
-    /* Пример вывода:
-        Knapsack size: 5
-        Knapsack capacity: 3
-        (         1 |          2)
-        (         1 |          1)
-        (         2 |          2)
-        (         3 |          3)
-        (         2 |          1)
-        ------------------------
-                9 |          9
-        Result: 4
-        1 0 1 0 0
-    */
 }
