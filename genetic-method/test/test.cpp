@@ -261,7 +261,6 @@ struct EndNodeFunction: public EndNodeFunctionWrapper<bool, std::shared_ptr<std:
     }
 };
 
-
 struct EndNodeLog: public Loger::EndNodeLogWrapper<bool, std::mutex&>
 {
     virtual std::function<void(const Population<bool>&, const string&)> operator()(std::mutex& mut) const override
