@@ -1,0 +1,30 @@
+{
+    "name": "NAME",
+    "gene_type": "GENE_TYPE",
+    "const_ref_vars": [
+        [
+            "const_ref_var_type",
+            "const_ref_var_val"
+        ]
+    ],
+    "const_vars": [
+        [
+            "const_var_type",
+            "const_var_val"
+        ]
+    ],
+    "ref_vars": [
+        [
+            "ref_var_type",
+            "ref_var_val"
+        ]
+    ],
+    "vars": [
+        [
+            "var_type",
+            "var_val"
+        ]
+    ],
+    "code": "return 1.;",
+    "type": "FITNESS"
+}
