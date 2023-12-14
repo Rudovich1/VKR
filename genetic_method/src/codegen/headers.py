@@ -221,7 +221,7 @@ class Library(object):
         self.is_stl = is_stl
 
     def gen(self) -> str:
-        return f"#include {'<' if self.is_stl else '\"'}{self.name}{'<' if self.is_stl else '\"'}\n"
+        return f"#include {'<' if self.is_stl else '"'}{self.name}{'<' if self.is_stl else '"'}\n"
     
 
 
