@@ -26,12 +26,12 @@ async def get_function(name: str):
 
 
 @app.get("/function/get_functions_by_type")
-async def get_functions_by_type(type: str):
+async def get_functions_by_type(type: contract.StoreFunction):
     return list(map(lambda x: x.__dict__, controller.get_functions_by_type(type)))
 
 
 @app.post("/function/post_function")
-async def post_function(fun: contract.Function):
+async def post_function(fun: contract.MainFunction):
     res = controller.add_function(fun)
     if not res:
         raise HTTPException(
@@ -42,3 +42,8 @@ async def post_function(fun: contract.Function):
 @app.delete("/function/delete_function")
 async def delete_function(name: str):
     controller.remove_function(name)
+
+
+@app.get("/vars/get_all_vars")
+async def gen_all_vars():
+    return list(map(lambda x: x.__dict__, controller.get_vars()))
