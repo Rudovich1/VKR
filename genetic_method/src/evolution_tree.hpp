@@ -237,9 +237,9 @@ namespace GeneticAlgorithm
                 for (Types::Chromosome<GeneType>& chromosome: new_generation.get())
                 {
                     if (!chromosome.optionalFitness().has_value())
-                {
-                    chromosome.optionalFitness() = fitnessFunction_.value()(chromosome);
-                }
+                    {
+                        chromosome.optionalFitness() = fitnessFunction_.value()(chromosome);
+                    }
                 }
 
                 if (selectionFunction_.has_value()) {population.add(selectionFunction_.value()(new_generation));}

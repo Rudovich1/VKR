@@ -25,7 +25,8 @@ public:
     size_t processed_size() const;
     Type& back();
     const Type& back() const;
-    Type& operator[](size_t index) const;
+    const Type& operator[](size_t index) const;
+    Type& operator[](size_t index);
     void clear();
 };
 
@@ -103,7 +104,13 @@ const Type& BufferType<Type>::back() const
 }
 
 template<typename Type>
-Type& BufferType<Type>::operator[](size_t index) const
+const Type& BufferType<Type>::operator[](size_t index) const
+{
+    return buff_[index];
+}
+
+template<typename Type>
+Type& BufferType<Type>::operator[](size_t index)
 {
     return buff_[index];
 }

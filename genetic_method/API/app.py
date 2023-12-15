@@ -2,12 +2,18 @@ from fastapi import FastAPI, HTTPException
 from starlette import status
 from genetic_method.API import controller
 from genetic_method.API import contract
+from genetic_method.API.startup_db import startup_db
 
 app = FastAPI()
 
 @app.get("/test")
 async def test():
     return {"message": "Hello World"}
+
+
+@app.on_event("startup")
+async def startup():
+    startup_db()
 
 
 @app.get("/function/get_all_functions")
