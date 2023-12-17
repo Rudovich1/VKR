@@ -224,7 +224,6 @@ class Library(object):
         return f"#include {'<' if self.is_stl else '"'}{self.name}{'<' if self.is_stl else '"'}\n"
     
 
-
 class Variable(object):
 
     def __init__(
