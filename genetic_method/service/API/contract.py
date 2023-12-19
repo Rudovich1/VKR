@@ -48,6 +48,11 @@ class FunctionParamId(BaseFunctionParam, Id):
 class FunctionParam(FunctionParamLinks, FunctionParamId):
     pass
 
+class FunctionParamRes(BaseFunctionParam):
+    pass
+
+class FunctionParamWithArg(BaseFunctionParam):
+    arg: "BaseFunction_NodeArg"
 
 # GlobalVarArg
 
@@ -56,7 +61,7 @@ class BaseGlobalVarArg(BaseModel):
     arg: str
 
 class GlobalVarArgLinks(BaseGlobalVarArg):
-    globalVar_id: int
+    global_var_id: int
 
 class GlobalVarArgId(BaseGlobalVarArg, Id):
     pass
@@ -72,7 +77,7 @@ class BaseLibrary(Name):
     is_str: bool
 
 class LibraryLinks(BaseLibrary):
-    header_id: int
+    program_id: int
 
 class LibraryId(BaseLibrary, Id):
     pass
@@ -106,7 +111,7 @@ class BaseGlobalVar(Name):
     type: str
 
 class GlobalVarLinks(BaseGlobalVar):
-    header_id: int
+    program_id: int
     arg_ids: list[int]
 
 class GlobalVarId(BaseGlobalVar, Id):
@@ -116,38 +121,57 @@ class GlobalVar(GlobalVarLinks, GlobalVarId):
     pass
 
 
+# Program_Graph
+
+class BaseProgram_Graph(BaseModel):
+    pass
+
+class Program_GraphLinks(BaseProgram_Graph):
+    program_id: int
+    graph_id: int
+
+class Program_GraphId(BaseProgram_Graph, Id):
+    pass
+
+class Program_Graph(Program_GraphLinks, Program_GraphId):
+    pass
+
+
+# Function_Node
+
+
+class BaseFunction_Node(BaseModel):
+    pass
+
+class Function_NodeLinks(BaseFunction_Node):
+    function_id: int
+    node_id: int
+    arg_ids: list[int]
+
+class Function_NodeId(BaseFunction_Node, Id):
+    pass
+
+class Function_Node(Function_NodeLinks, Function_NodeId):
+    pass
+
+
 # Node_Graph
 
 
-# class BaseNode_Graph(BaseModel):
-#     parent_node_name: str
-
-# class Node_GraphLinks(BaseNode_Graph):
-#     node_id: int
-#     graph_id: int
-
-# class Node_GraphId(BaseNode_Graph, Id):
-#     pass
-
-# class Node_Graph(Node_GraphLinks, Node_GraphId):
-#     pass
-
-
-# Program
-
-
-class BaseProgram(Name):
+class BaseNode_Graph(BaseModel):
     pass
 
-class ProgramLinks(BaseProgram):
-    header_id: int
+class Node_GraphLinks(BaseNode_Graph):
+    parent_node_graph_id: int | None
+    node_id: int
     graph_id: int
 
-class ProgramId(BaseProgram, Id):
+class Node_GraphId(BaseNode_Graph, Id):
     pass
 
-class Program(ProgramLinks, ProgramId):
+class Node_Graph(Node_GraphLinks, Node_GraphId):
     pass
+
 
 
 # Function
@@ -161,7 +185,6 @@ class BaseFunction(Name):
 class FunctionLinks(BaseFunction):
     node_ids: list[int]
     param_ids: list[int]
-    header_ids: list[int]
 
 class FunctionId(BaseFunction, Id):
     pass
@@ -169,7 +192,14 @@ class FunctionId(BaseFunction, Id):
 class Function(FunctionLinks, FunctionId):
     pass
 
+class FunctionRes(BaseFunction):
+    params: list[FunctionParamRes]
 
+class FunctionPostRes(Id):
+    param_ids: list[Id]
+
+class FunctionWithArgs(BaseFunction):
+    params: list[FunctionParamWithArg]
 # Node
 
 
@@ -187,25 +217,8 @@ class NodeId(BaseNode, Id):
 class Node(NodeLinks, NodeId):
     pass
 
-
-# Header
-
-
-class BaseHeader(Name):
-    pass
-
-class HeaderLinks(BaseHeader):
-    program_ids: list[int]
-    library_ids: list[int]
-    globalVar_ids: list[int]
-    function_ids: list[int]
-
-class HeaderId(BaseHeader, Id):
-    pass
-
-class Header(HeaderLinks, HeaderId):
-    pass
-
+class NodeRes(BaseNode):
+    functions: list[FunctionWithArgs]
 
 # Graph
 
@@ -216,6 +229,7 @@ class BaseGraph(Name):
 class GraphLinks(BaseGraph):
     program_ids: list[int]
     node_ids: list[int]
+    node_graph_ids: list[int]
 
 class GraphId(BaseGraph, Id):
     pass
@@ -224,6 +238,19 @@ class Graph(GraphLinks, GraphId):
     pass
 
 
+# Program
 
 
+class BaseProgram(Name):
+    pass
 
+class ProgramLinks(BaseProgram):
+    library_ids: list[int]
+    global_var_ids: list[int]
+    graph_ids: list[int]
+
+class ProgramId(BaseProgram, Id):
+    pass
+
+class Program(ProgramLinks, ProgramId):
+    pass

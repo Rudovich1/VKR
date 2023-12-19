@@ -56,9 +56,9 @@ class GlobalVarArg(Base, Id):
     __tablename__ = "GlobalVarArg"
 
     arg:            Mapped[str] = mapped_column()
-    globalVar_id:   Mapped[int] = mapped_column(ForeignKey("GlobalVar.id"))
+    global_var_id:   Mapped[int] = mapped_column(ForeignKey("GlobalVar.id"))
 
-    _globalVar: Mapped["GlobalVar"] = relationship(back_populates="_args")
+    _global_var: Mapped["GlobalVar"] = relationship(back_populates="_args")
 
     def make_model(data: dict[str, ]) -> "GlobalVarArg":
         return GlobalVarArg(
@@ -69,7 +69,7 @@ class GlobalVarArg(Base, Id):
         res = super().to_dict()
         res.update({
             "arg":          self.arg,
-            "globalVar_id": self.globalVar_id
+            "global_var_id": self.global_var_id
         })
         return res
     
@@ -79,9 +79,9 @@ class Library(Base, Id):
 
     name:       Mapped[str]     = mapped_column()
     is_stl:     Mapped[bool]    = mapped_column()
-    header_id:  Mapped[int]     = mapped_column(ForeignKey("Header.id"))
+    program_id: Mapped[int]     = mapped_column(ForeignKey("Program.id"))
 
-    _header:    Mapped["Header"]    = relationship(back_populates="_libraries")
+    _program:    Mapped["Program"]  = relationship(back_populates="_libraries")
 
     def make_model(data: dict[str, ]) -> "Library":
         return Library(
@@ -94,7 +94,7 @@ class Library(Base, Id):
         res.update({
             "name":         self.name,
             "is_stl":       self.is_stl,
-            "header_id":    self.header_id
+            "program_id":   self.program_id
         })
         return res
 
@@ -128,10 +128,10 @@ class GlobalVar(Base, Id):
     name:       Mapped[str]         = mapped_column()
     type:       Mapped[str]         = mapped_column()
     is_const:   Mapped[bool]        = mapped_column()
-    header_id:  Mapped[int]         = mapped_column(ForeignKey("Header.id"))
+    program_id: Mapped[int]         = mapped_column(ForeignKey("Program.id"))
 
-    _header:    Mapped["Header"]               = relationship(back_populates="_globalVars")
-    _args:      Mapped[list["GlobalVarArg"]]   = relationship(back_populates="_globalVar")
+    _program:    Mapped["Program"]             = relationship(back_populates="_global_vars")
+    _args:      Mapped[list["GlobalVarArg"]]   = relationship(back_populates="_global_var")
 
     def make_model(data: dict[str, ]) -> "GlobalVar":
         return GlobalVar(
@@ -146,29 +146,30 @@ class GlobalVar(Base, Id):
             "name":         self.name,
             "type":         self.type,
             "is_const":     self.is_const,
-            "header_id":    self.header_id,
+            "program_id":   self.program_id,
             "arg_ids":      Base._get_ids(self._args)
         })
         return res
 
 
-class Function_Header(Base, Id):
-    __tablename__ = "Function_Header"
+class Program_Graph(Base, Id):
+    __tablename__ = "Program_Graph"
 
-    function_id:    Mapped[int] = mapped_column(ForeignKey("Function.id"))
-    header_id:      Mapped[int] = mapped_column(ForeignKey("Header.id"))
+    program_id: Mapped[int] = mapped_column(ForeignKey("Program.id"))
+    graph_id:   Mapped[int] = mapped_column(ForeignKey("Graph.id"))
 
-    _function:  Mapped["Function"] = relationship(back_populates="_header_associations")
-    _header:    Mapped["Header"]   = relationship(back_populates="_function_associations")
+    _program:   Mapped["Program"]   = relationship(back_populates="_graph_associations")
+    _graph:     Mapped["Graph"]     = relationship(back_populates="_program_associations")
 
-    def make_model(data: dict[str, ]) -> "Function_Header":
-        return Function_Header()
+    def make_model(data: dict[str, ]):
+        return Program_Graph()
     
     def to_dict(self) -> dict[str, ]:
-        res = {
-            "function_id":  self.function_id,
-            "header_id":    self.header_id
-        }
+        res = super().to_dict()
+        res.update({
+            "program_id":   self.program_id,
+            "graph_id":     self.graph_id
+        })
         return res
 
 
@@ -194,70 +195,45 @@ class Function_Node(Base, Id):
         return res
 
 
-class Node_Graph(Base, Id):
+class Node_Graph(Base):
     __tablename__ = "Node_Graph"
 
-    parent_node_name:   Mapped[str] = mapped_column(nullable=True)
-    node_id:            Mapped[int] = mapped_column(ForeignKey("Node.id"))
-    graph_id:           Mapped[int] = mapped_column(ForeignKey("Graph.id"))
+    id:                     Mapped[int] = mapped_column(primary_key=True, unique=True, autoincrement=True)
+    parent_node_graph_id:   Mapped[int] = mapped_column(ForeignKey("Node_Graph.id"), nullable=True)
+    node_id:                Mapped[int] = mapped_column(ForeignKey("Node.id"))
+    graph_id:               Mapped[int] = mapped_column(ForeignKey("Graph.id"))
 
-    _node:  Mapped["Node"]  = relationship(back_populates="_graph_associations")
-    _graph: Mapped["Graph"] = relationship(back_populates="_node_associations")
+    _parent_node_graph: Mapped["Node_Graph"]        = relationship(back_populates="_child_node_graphs", remote_side=[id])
+    _child_node_graphs: Mapped[list["Node_Graph"]]  = relationship(back_populates="_parent_node_graph")
+    _node:              Mapped["Node"]              = relationship(back_populates="_node_graphs")
+    _graph:             Mapped["Graph"]             = relationship(back_populates="_node_graphs")
 
     def make_model(data: dict[str, ]) -> "Node_Graph":
-        return Node_Graph(
-            parent_node_name    = data["parent_node_name"]
-        )
+        return Node_Graph()
     
     def to_dict(self) -> dict[str, ]:
         res = {
-            "parent_node_name": self.parent_node_name,
-            "node_id":          self.node_id,
-            "graph_id":         self.graph_id
+            "id":                   self.id,
+            "parent_node_graph_id": self.parent_node_graph_id,
+            "node_id":              self.node_id,
+            "graph_id":             self.graph_id
         }
         return res
-
-
-class Program(Base, Id):
-    __tablename__ = "Program"
-
-    name:       Mapped[str] = mapped_column(unique=True)
-    header_id:  Mapped[int] = mapped_column(ForeignKey("Header.id"))
-    graph_id:   Mapped[int] = mapped_column(ForeignKey("Graph.id"))
-
-    _header:    Mapped["Header"]   = relationship(back_populates="_programs")
-    _graph:     Mapped["Graph"]    = relationship(back_populates="_programs")
-
-    def make_model(data: dict[str, ]) -> "Program":
-        return Program(
-            name    = data["name"]
-        )
-    
-    def to_dict(self) -> dict[str, ]:
-        res = super().to_dict()
-        res.update({
-            "name":         self.name,
-            "header_id":    self.header_id,
-            "graph_id":     self.graph_id
-        })
-        return res    
 
 
 class Function(Base, Id):
     __tablename__ = "Function"
 
-    name:       Mapped[str] = mapped_column(unique=True)
+    name:       Mapped[str] = mapped_column()
     type:       Mapped[str] = mapped_column()
     gene_type:  Mapped[str] = mapped_column()
     code:       Mapped[str] = mapped_column()
 
-    _nodes:     Mapped[list["Node"]]            = relationship(secondary="Function_Node", back_populates="_functions")
+    _nodes:     Mapped[list["Node"]]            = relationship(secondary="Function_Node", back_populates="_functions", viewonly=True)
     _params:    Mapped[list["FunctionParam"]]   = relationship(back_populates="_function")
-    _headers:   Mapped[list["Header"]]          = relationship(secondary="Function_Header", back_populates="_functions")
     
     _node_associations:     Mapped[list["Function_Node"]]   = relationship(back_populates="_function")
-    _header_associations:   Mapped[list["Function_Header"]] = relationship(back_populates="_function")
-
+    
     def make_model(data: dict[str, ]) -> "Function":
         return Function(
             name        = data["name"],
@@ -274,8 +250,7 @@ class Function(Base, Id):
             "gene_type":    self.gene_type,
             "code":         self.code,
             "node_ids":     Base._get_ids(self._nodes),
-            "param_ids":    Base._get_ids(self._params),
-            "header_ids":   Base._get_ids(self._headers)
+            "param_ids":    Base._get_ids(self._params)
         })
         return res
 
@@ -283,15 +258,15 @@ class Function(Base, Id):
 class Node(Base, Id):
     __tablename__ = "Node"
 
-    name:       Mapped[str] = mapped_column(unique=True)
+    name:       Mapped[str] = mapped_column()
     type:       Mapped[str] = mapped_column()
     gene_type:  Mapped[str] = mapped_column()
 
-    _functions: Mapped[list["Function"]]    = relationship(secondary="Function_Node", back_populates="_nodes")
-    _graphs:    Mapped[list["Graph"]]       = relationship(secondary="Node_Graph", back_populates="_nodes")
+    _functions:     Mapped[list["Function"]]    = relationship(secondary="Function_Node", back_populates="_nodes", viewonly=True)
+    _graphs:        Mapped[set["Graph"]]        = relationship(secondary="Node_Graph", back_populates="_nodes", viewonly=True)
+    _node_graphs:   Mapped[list["Node_Graph"]]  = relationship(back_populates="_node")
 
     _function_associations: Mapped[list["Function_Node"]]   = relationship(back_populates="_node")
-    _graph_associations:    Mapped[list["Node_Graph"]]      = relationship(back_populates="_node")
 
     def make_model(data: dict[str, ]) -> "Node":
         return Node(
@@ -312,44 +287,16 @@ class Node(Base, Id):
         return res
 
 
-class Header(Base, Id):
-    __tablename__ = "Header"
-
-    name:   Mapped[str] = mapped_column(unique=True)
-
-    _programs:      Mapped[list["Program"]]     = relationship(back_populates="_header")
-    _libraries:     Mapped[list["Library"]]     = relationship(back_populates="_header")
-    _globalVars:    Mapped[list["GlobalVar"]]   = relationship(back_populates="_header")
-    _functions:     Mapped[list["Function"]]    = relationship(secondary="Function_Header", back_populates="_headers")
-
-    _function_associations: Mapped[list["Function_Header"]] = relationship(back_populates="_header")
-
-    def make_model(data: dict[str, ]) -> "Header":
-        return Header(
-            name    = data["name"]
-        )
-    
-    def to_dict(self) -> dict[str, ]:
-        res = super().to_dict()
-        res.update({
-            "name":             self.name,
-            "program_ids":      Base._get_ids(self._programs),
-            "library_ids":      Base._get_ids(self._libraries),
-            "globalVar_ids":   Base._get_ids(self._globalVars),
-            "function_ids":     Base._get_ids(self._functions)
-        })
-        return res
-
-
 class Graph(Base, Id):
     __tablename__ = "Graph"
 
-    name:   Mapped[str] = mapped_column(unique=True)
+    name:   Mapped[str] = mapped_column()
 
-    _programs:  Mapped[list["Program"]] = relationship(back_populates="_graph")
-    _nodes:     Mapped[list["Node"]]    = relationship(secondary="Node_Graph", back_populates="_graphs")
+    _programs:          Mapped[list["Program"]]     = relationship(secondary="Program_Graph", back_populates="_graphs", viewonly=True)
+    _nodes:             Mapped[set["Node"]]        = relationship(secondary="Node_Graph", back_populates="_graphs", viewonly=True)
+    _node_graphs:       Mapped[list["Node_Graph"]]  = relationship(back_populates="_graph")
 
-    _node_associations: Mapped[list["Node_Graph"]]  = relationship(back_populates="_graph")
+    _program_associations:  Mapped[list["Program_Graph"]]   = relationship(back_populates="_graph")
 
     def make_model(data: dict[str, ]) -> "Graph":
         return Graph(
@@ -359,10 +306,36 @@ class Graph(Base, Id):
     def to_dict(self) -> dict[str, ]:
         res = super().to_dict()
         res.update({
-            "name":         self.name,
-            "program_ids":  Base._get_ids(self._programs),
-            "node_ids":     Base._get_ids(self._nodes)
+            "name":             self.name,
+            "program_ids":      Base._get_ids(self._programs),
+            "node_ids":         Base._get_ids(self._nodes),
+            "node_graph_ids:":  Base._get_ids(self._node_graphs)
         })
         return res
 
 
+class Program(Base, Id):
+    __tablename__ = "Program"
+
+    name:       Mapped[str] = mapped_column(unique=True)
+
+    _libraries:     Mapped[list["Library"]]     = relationship(back_populates="_program")
+    _global_vars:   Mapped[list["GlobalVar"]]   = relationship(back_populates="_program")
+    _graphs:        Mapped[list["Graph"]]       = relationship(secondary="Program_Graph", back_populates="_programs", viewonly=True)
+
+    _graph_associations:    Mapped[list["Program_Graph"]]   = relationship(back_populates="_program")
+
+    def make_model(data: dict[str, ]) -> "Program":
+        return Program(
+            name    = data["name"]
+        )
+    
+    def to_dict(self) -> dict[str, ]:
+        res = super().to_dict()
+        res.update({
+            "name":             self.name,
+            "library_ids":      Base._get_ids(self._libraries),
+            "global_var_ids":   Base._get_ids(self._global_vars),
+            "graph_ids":        Base._get_ids(self._graphs)
+        })
+        return res    
