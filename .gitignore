@@ -40,11 +40,12 @@
 *.gz
 *.tex
 *.toc
+
 *.PNG
 *.log
-
 !*store.json
 !*new_function.json
 *.lock
 *.db
 *__pycache__
+*.bkp
