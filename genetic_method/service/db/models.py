@@ -108,7 +108,7 @@ class Function_NodeArg(Base, Id):
     _function_node: Mapped["Function_Node"] = relationship(back_populates="_args")
 
     def make_model(data: dict[str, ]) -> "Function_NodeArg":
-        return Function_Node(
+        return Function_NodeArg(
             arg = data["arg"]
         )
     
@@ -181,17 +181,18 @@ class Function_Node(Base, Id):
 
     _function:  Mapped["Function"]                  = relationship(back_populates="_node_associations")
     _node:      Mapped["Node"]                      = relationship(back_populates="_function_associations")
-    _args:      Mapped[list["Function_NodeArg"]]   = relationship(back_populates="_function_node")
+    _args:      Mapped[list["Function_NodeArg"]]    = relationship(back_populates="_function_node")
 
     def make_model(data: dict[str, ]) -> "Function_Node":
         return Function_Node()
     
     def to_dict(self) -> dict[str, ]:
-        res = {
+        res = super().to_dict()
+        res.update({
             "function_id":  self.function_id,
             "node_id":      self.node_id,
             "arg_ids":      Base._get_ids(self._args)
-        }
+        })
         return res
 
 
@@ -199,6 +200,7 @@ class Node_Graph(Base):
     __tablename__ = "Node_Graph"
 
     id:                     Mapped[int] = mapped_column(primary_key=True, unique=True, autoincrement=True)
+    name:                   Mapped[str] = mapped_column()
     parent_node_graph_id:   Mapped[int] = mapped_column(ForeignKey("Node_Graph.id"), nullable=True)
     node_id:                Mapped[int] = mapped_column(ForeignKey("Node.id"))
     graph_id:               Mapped[int] = mapped_column(ForeignKey("Graph.id"))
@@ -209,11 +211,14 @@ class Node_Graph(Base):
     _graph:             Mapped["Graph"]             = relationship(back_populates="_node_graphs")
 
     def make_model(data: dict[str, ]) -> "Node_Graph":
-        return Node_Graph()
+        return Node_Graph(
+            name = data["name"]
+        )
     
     def to_dict(self) -> dict[str, ]:
         res = {
             "id":                   self.id,
+            "name":                 self.name,
             "parent_node_graph_id": self.parent_node_graph_id,
             "node_id":              self.node_id,
             "graph_id":             self.graph_id
@@ -224,7 +229,7 @@ class Node_Graph(Base):
 class Function(Base, Id):
     __tablename__ = "Function"
 
-    name:       Mapped[str] = mapped_column()
+    name:       Mapped[str] = mapped_column(unique=True)
     type:       Mapped[str] = mapped_column()
     gene_type:  Mapped[str] = mapped_column()
     code:       Mapped[str] = mapped_column()
@@ -258,7 +263,7 @@ class Function(Base, Id):
 class Node(Base, Id):
     __tablename__ = "Node"
 
-    name:       Mapped[str] = mapped_column()
+    name:       Mapped[str] = mapped_column(unique=True)
     type:       Mapped[str] = mapped_column()
     gene_type:  Mapped[str] = mapped_column()
 
@@ -290,7 +295,7 @@ class Node(Base, Id):
 class Graph(Base, Id):
     __tablename__ = "Graph"
 
-    name:   Mapped[str] = mapped_column()
+    name:   Mapped[str] = mapped_column(unique=True)
 
     _programs:          Mapped[list["Program"]]     = relationship(secondary="Program_Graph", back_populates="_graphs", viewonly=True)
     _nodes:             Mapped[set["Node"]]        = relationship(secondary="Node_Graph", back_populates="_graphs", viewonly=True)

@@ -6,7 +6,7 @@ def start():
         "genetic_method.service.API.app:app",
         host='localhost',
         port=8080,
-        reload=True)
+        reload=False)
     
     
     

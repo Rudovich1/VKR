@@ -8,7 +8,7 @@ DB_PATH = "/genetic_method/service/db/database.db"
 DB_URL = f"sqlite://{DB_PATH}"
 
 
-engine = create_engine(DB_URL.__str__(), echo=True)
+engine = create_engine(DB_URL.__str__(), echo=True, pool_timeout=30)
 
 if not Path(DB_PATH).is_file():        
     with Session(engine) as session:
