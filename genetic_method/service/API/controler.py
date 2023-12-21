@@ -2,8 +2,8 @@ from fastapi import HTTPException
 from starlette import status
 from genetic_method.service.API import contract
 from genetic_method.service.db import models, engine
-from sqlalchemy.orm import Session, Query
-from sqlalchemy import select
+from sqlalchemy.orm import Session
+from sqlalchemy import text
 from typing import TypeVar, Type
 
 
@@ -19,6 +19,8 @@ FIELD1 = TypeVar("FIELD1")
 
 def get_session(engine=engine) -> Session:
     with Session(engine) as session:
+        session.execute(text("pragma foreign_keys=on"))
+        session.commit()
         return session
 
 
@@ -154,15 +156,15 @@ def get_global_var_args(session: Session,
     res = to_list_contracts(global_var._args, contract_type)
     return res
 
-def post_global_var_arg(session: Session, 
-                        global_var: int | models.GlobalVar, 
-                        arg: contract.BaseGlobalVarArg) -> contract.Id:
-    global_var = get_model(session, global_var, models.GlobalVar)
-    model = to_model(arg, models.GlobalVarArg)
-    global_var._args.append(model)
-    session.flush()
-    res = to_contract(model, contract.Id)
-    return res
+# def post_global_var_arg(session: Session, 
+#                         global_var: int | models.GlobalVar, 
+#                         arg: contract.BaseGlobalVarArg) -> contract.Id:
+#     global_var = get_model(session, global_var, models.GlobalVar)
+#     model = to_model(arg, models.GlobalVarArg)
+#     global_var._args.append(model)
+#     session.flush()
+#     res = to_contract(model, contract.Id)
+#     return res
 
 def post_global_var_args(session: Session,
                          global_var: int | models.GlobalVar,
@@ -174,11 +176,11 @@ def post_global_var_args(session: Session,
     res = to_list_contracts(arg_models, contract.Id)
     return res
 
-def delete_global_var_arg(session: Session, 
-                          arg: int | models.GlobalVarArg) -> None:
-    arg = get_model(session, arg, models.GlobalVarArg)
-    session.delete(arg)
-    session.flush()
+# def delete_global_var_arg(session: Session, 
+#                           arg: int | models.GlobalVarArg) -> None:
+#     arg = get_model(session, arg, models.GlobalVarArg)
+#     session.delete(arg)
+#     session.flush()
 
 def delete_global_var_args(session: Session,
                        global_var: int | models.GlobalVar) -> None:
@@ -356,15 +358,12 @@ def post_global_vars(session: Session,
 def delete_global_var(session: Session, 
                       global_var: int | models.GlobalVar) -> None:
     global_var = get_model(session, global_var, models.GlobalVar)
-    delete_global_var_args(session, global_var)
     session.delete(global_var)
     session.flush()
 
 def delete_global_vars(session: Session,
                        program: int | models.Program | str) -> None:
     program = get_model(session, program, models.Program)
-    for global_var in program._global_vars:
-        delete_global_var_args(session, global_var)
     session.query(models.GlobalVar).filter(
         models.GlobalVar.program_id == program.id).delete()
     session.flush()
@@ -510,7 +509,7 @@ def post_function_node(session: Session,
         node.type != contract.NodeTypes.population_node):
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
-            f"{fun.type} used inly in {contract.NodeTypes.population_node}"
+            f"{fun.type} used only in {contract.NodeTypes.population_node}"
         )
 
     fun_node = models.Function_Node()
@@ -524,7 +523,6 @@ def post_function_node(session: Session,
 def delete_function_node(session: Session,
                          fun_node: int | models.Function_Node) -> None:
     fun_node = get_model(session, fun_node, models.Function_Node)
-    delete_function_node_args(session, fun_node)
     session.delete(fun_node)
     session.flush()
 
@@ -539,9 +537,6 @@ def delete_function_nodes(session: Session,
     if node is not None:
         node_id = get_model_id(session, node, models.Node)
         q = q.filter(models.Function_Node.node_id == node_id)
-    fn_models = q.all()
-    for fn_model in fn_models:
-        delete_function_node_args(session, fn_model)
     q.delete()
     session.flush()
 
@@ -626,8 +621,6 @@ def post_node_graph(session: Session,
 def delete_node_graph(session: Session,
                       node_graph: int | models.Node_Graph) -> None:
     node_graph = get_model(session, node_graph, models.Node_Graph)
-    for child in node_graph._child_node_graphs:
-        delete_node_graph(session, child)
     session.delete(node_graph)
     session.flush()
 
@@ -642,9 +635,7 @@ def delete_node_graphs(session: Session,
     if graph is not None:
         graph_id = get_model_id(session, graph, models.Graph)
         q = q.filter(models.Node_Graph.graph_id == graph_id)
-    ng_models = q.all()
-    for ng_model in ng_models:
-        delete_node_graph(session, ng_model)
+    q.delete()
     session.flush()
 
 
@@ -696,9 +687,6 @@ def post_function(session: Session,
 def delete_function(session: Session, 
                     fun: int | models.Function| str) -> None:
     fun = get_model(session, fun, models.Function)
-    delete_function_params(session, fun)
-    for fun_node in fun._node_associations:
-        delete_function_node(session, fun_node)
     session.delete(fun)
     session.flush()
 
@@ -755,8 +743,6 @@ def post_node(session: Session,
 def delete_node(session: Session,
                 node: int | models.Node | str) -> None:
     node = get_model(session, node, models.Node)
-    delete_function_nodes(session, node=node)
-    delete_node_graphs(session, node=node)
     session.delete(node)
     session.flush()
 
@@ -807,8 +793,6 @@ def post_graph(session: Session,
 def delete_graph(session: Session,
                  graph: int | models.Graph | str) -> None:
     graph = get_model(session, graph, models.Graph)
-    delete_program_graphs(session, graph=graph)
-    delete_node_graphs(session, graph=graph)
     session.delete(graph)
     session.flush()
 
@@ -848,9 +832,6 @@ def post_program(session: Session,
 def delete_program(session: Session,
                    program: int | models.Program | str) -> None:
     program = get_model(session, program, models.Program)
-    delete_libraries(session, program)
-    delete_global_vars(session, program)
-    delete_program_graphs(session, program=program)
     session.delete(program)
     session.flush()
 

@@ -28,7 +28,7 @@ class FunctionParam(Base, Id):
     type:           Mapped[str]     = mapped_column()
     is_const:       Mapped[bool]    = mapped_column()
     is_ref:         Mapped[bool]    = mapped_column()
-    function_id:    Mapped[int]     = mapped_column(ForeignKey("Function.id"))
+    function_id:    Mapped[int]     = mapped_column(ForeignKey("Function.id", ondelete="CASCADE"))
 
     _function:  Mapped["Function"] = relationship(back_populates="_params")
 
@@ -56,7 +56,7 @@ class GlobalVarArg(Base, Id):
     __tablename__ = "GlobalVarArg"
 
     arg:            Mapped[str] = mapped_column()
-    global_var_id:   Mapped[int] = mapped_column(ForeignKey("GlobalVar.id"))
+    global_var_id:   Mapped[int] = mapped_column(ForeignKey("GlobalVar.id", ondelete="CASCADE"))
 
     _global_var: Mapped["GlobalVar"] = relationship(back_populates="_args")
 
@@ -79,7 +79,7 @@ class Library(Base, Id):
 
     name:       Mapped[str]     = mapped_column()
     is_stl:     Mapped[bool]    = mapped_column()
-    program_id: Mapped[int]     = mapped_column(ForeignKey("Program.id"))
+    program_id: Mapped[int]     = mapped_column(ForeignKey("Program.id", ondelete="CASCADE"))
 
     _program:    Mapped["Program"]  = relationship(back_populates="_libraries")
 
@@ -103,7 +103,7 @@ class Function_NodeArg(Base, Id):
     __tablename__ = "Function_NodeArg"
 
     arg:                Mapped[str] = mapped_column()
-    function_node_id:   Mapped[int] = mapped_column(ForeignKey("Function_Node.id"))
+    function_node_id:   Mapped[int] = mapped_column(ForeignKey("Function_Node.id", ondelete="CASCADE"))
 
     _function_node: Mapped["Function_Node"] = relationship(back_populates="_args")
 
@@ -128,10 +128,10 @@ class GlobalVar(Base, Id):
     name:       Mapped[str]         = mapped_column()
     type:       Mapped[str]         = mapped_column()
     is_const:   Mapped[bool]        = mapped_column()
-    program_id: Mapped[int]         = mapped_column(ForeignKey("Program.id"))
+    program_id: Mapped[int]         = mapped_column(ForeignKey("Program.id", ondelete="CASCADE"))
 
     _program:    Mapped["Program"]             = relationship(back_populates="_global_vars")
-    _args:      Mapped[list["GlobalVarArg"]]   = relationship(back_populates="_global_var")
+    _args:      Mapped[list["GlobalVarArg"]]   = relationship(back_populates="_global_var", passive_deletes=True, cascade="all, delete")
 
     def make_model(data: dict[str, ]) -> "GlobalVar":
         return GlobalVar(
@@ -155,8 +155,8 @@ class GlobalVar(Base, Id):
 class Program_Graph(Base, Id):
     __tablename__ = "Program_Graph"
 
-    program_id: Mapped[int] = mapped_column(ForeignKey("Program.id"))
-    graph_id:   Mapped[int] = mapped_column(ForeignKey("Graph.id"))
+    program_id: Mapped[int] = mapped_column(ForeignKey("Program.id", ondelete="CASCADE"))
+    graph_id:   Mapped[int] = mapped_column(ForeignKey("Graph.id", ondelete="CASCADE"))
 
     _program:   Mapped["Program"]   = relationship(back_populates="_graph_associations")
     _graph:     Mapped["Graph"]     = relationship(back_populates="_program_associations")
@@ -176,12 +176,12 @@ class Program_Graph(Base, Id):
 class Function_Node(Base, Id):
     __tablename__ = "Function_Node"
 
-    function_id:    Mapped[int] = mapped_column(ForeignKey("Function.id"))
-    node_id:        Mapped[int] = mapped_column(ForeignKey("Node.id"))
+    function_id:    Mapped[int] = mapped_column(ForeignKey("Function.id", ondelete="CASCADE"))
+    node_id:        Mapped[int] = mapped_column(ForeignKey("Node.id", ondelete="CASCADE"))
 
     _function:  Mapped["Function"]                  = relationship(back_populates="_node_associations")
     _node:      Mapped["Node"]                      = relationship(back_populates="_function_associations")
-    _args:      Mapped[list["Function_NodeArg"]]    = relationship(back_populates="_function_node")
+    _args:      Mapped[list["Function_NodeArg"]]    = relationship(back_populates="_function_node", passive_deletes=True, cascade="all, delete")
 
     def make_model(data: dict[str, ]) -> "Function_Node":
         return Function_Node()
@@ -201,12 +201,12 @@ class Node_Graph(Base):
 
     id:                     Mapped[int] = mapped_column(primary_key=True, unique=True, autoincrement=True)
     name:                   Mapped[str] = mapped_column()
-    parent_node_graph_id:   Mapped[int] = mapped_column(ForeignKey("Node_Graph.id"), nullable=True)
-    node_id:                Mapped[int] = mapped_column(ForeignKey("Node.id"))
-    graph_id:               Mapped[int] = mapped_column(ForeignKey("Graph.id"))
+    parent_node_graph_id:   Mapped[int] = mapped_column(ForeignKey("Node_Graph.id", ondelete="CASCADE"), nullable=True)
+    node_id:                Mapped[int] = mapped_column(ForeignKey("Node.id", ondelete="CASCADE"))
+    graph_id:               Mapped[int] = mapped_column(ForeignKey("Graph.id", ondelete="CASCADE"))
 
     _parent_node_graph: Mapped["Node_Graph"]        = relationship(back_populates="_child_node_graphs", remote_side=[id])
-    _child_node_graphs: Mapped[list["Node_Graph"]]  = relationship(back_populates="_parent_node_graph")
+    _child_node_graphs: Mapped[list["Node_Graph"]]  = relationship(back_populates="_parent_node_graph", passive_deletes=True, cascade="all, delete")
     _node:              Mapped["Node"]              = relationship(back_populates="_node_graphs")
     _graph:             Mapped["Graph"]             = relationship(back_populates="_node_graphs")
 
@@ -235,9 +235,9 @@ class Function(Base, Id):
     code:       Mapped[str] = mapped_column()
 
     _nodes:     Mapped[list["Node"]]            = relationship(secondary="Function_Node", back_populates="_functions", viewonly=True)
-    _params:    Mapped[list["FunctionParam"]]   = relationship(back_populates="_function")
+    _params:    Mapped[list["FunctionParam"]]   = relationship(back_populates="_function", passive_deletes=True, cascade="all, delete")
     
-    _node_associations:     Mapped[list["Function_Node"]]   = relationship(back_populates="_function")
+    _node_associations:     Mapped[list["Function_Node"]]   = relationship(back_populates="_function", passive_deletes=True, cascade="all, delete")
     
     def make_model(data: dict[str, ]) -> "Function":
         return Function(
@@ -269,9 +269,9 @@ class Node(Base, Id):
 
     _functions:     Mapped[list["Function"]]    = relationship(secondary="Function_Node", back_populates="_nodes", viewonly=True)
     _graphs:        Mapped[set["Graph"]]        = relationship(secondary="Node_Graph", back_populates="_nodes", viewonly=True)
-    _node_graphs:   Mapped[list["Node_Graph"]]  = relationship(back_populates="_node")
+    _node_graphs:   Mapped[list["Node_Graph"]]  = relationship(back_populates="_node", passive_deletes=True, cascade="all, delete")
 
-    _function_associations: Mapped[list["Function_Node"]]   = relationship(back_populates="_node")
+    _function_associations: Mapped[list["Function_Node"]]   = relationship(back_populates="_node", passive_deletes=True, cascade="all, delete")
 
     def make_model(data: dict[str, ]) -> "Node":
         return Node(
@@ -299,9 +299,9 @@ class Graph(Base, Id):
 
     _programs:          Mapped[list["Program"]]     = relationship(secondary="Program_Graph", back_populates="_graphs", viewonly=True)
     _nodes:             Mapped[set["Node"]]        = relationship(secondary="Node_Graph", back_populates="_graphs", viewonly=True)
-    _node_graphs:       Mapped[list["Node_Graph"]]  = relationship(back_populates="_graph")
+    _node_graphs:       Mapped[list["Node_Graph"]]  = relationship(back_populates="_graph", passive_deletes=True, cascade="all, delete")
 
-    _program_associations:  Mapped[list["Program_Graph"]]   = relationship(back_populates="_graph")
+    _program_associations:  Mapped[list["Program_Graph"]]   = relationship(back_populates="_graph", passive_deletes=True, cascade="all, delete")
 
     def make_model(data: dict[str, ]) -> "Graph":
         return Graph(
@@ -324,11 +324,11 @@ class Program(Base, Id):
 
     name:       Mapped[str] = mapped_column(unique=True)
 
-    _libraries:     Mapped[list["Library"]]     = relationship(back_populates="_program")
-    _global_vars:   Mapped[list["GlobalVar"]]   = relationship(back_populates="_program")
+    _libraries:     Mapped[list["Library"]]     = relationship(back_populates="_program", passive_deletes=True, cascade="all, delete")
+    _global_vars:   Mapped[list["GlobalVar"]]   = relationship(back_populates="_program", passive_deletes=True, cascade="all, delete")
     _graphs:        Mapped[list["Graph"]]       = relationship(secondary="Program_Graph", back_populates="_programs", viewonly=True)
 
-    _graph_associations:    Mapped[list["Program_Graph"]]   = relationship(back_populates="_program")
+    _graph_associations:    Mapped[list["Program_Graph"]]   = relationship(back_populates="_program", passive_deletes=True, cascade="all, delete")
 
     def make_model(data: dict[str, ]) -> "Program":
         return Program(

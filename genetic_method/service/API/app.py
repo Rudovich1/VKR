@@ -322,7 +322,7 @@ def delete_connect_function_node(function_name: str,
 def post_connect_node_graph(node_graph: contract.BaseNode_Graph,
                             node_name: str,
                             graph_name: str,
-                            parent_node_name: str | None) -> None:
+                            parent_node_name: str | None = None) -> None:
     session = controler.get_session()
     try:
         controler.post_node_graph(session, node_graph, node_name, graph_name, parent_node_name)
