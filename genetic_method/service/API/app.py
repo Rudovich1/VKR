@@ -414,4 +414,14 @@ def startup_db(path: Path = STARTUP_PATH):
             
     except Exception as ex:
         exit()
-        
+
+
+@app.get("/programs/name={program_name}/gens")
+def gen_program(program_name: str) -> str:
+    session = controler.get_session()
+    try:
+        code = controler.gen_program(session, program_name)
+    except Exception as ex:
+        session.rollback()
+        raise ex
+    return code

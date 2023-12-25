@@ -5,6 +5,7 @@ from genetic_method.service.db import models, engine
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from typing import TypeVar, Type
+from genetic_method.src.codegen import graph_gen, header_gen
 
 
 MODEL = TypeVar("MODEL")
@@ -595,18 +596,23 @@ def post_node_graph(session: Session,
         ng_model._node = node
         ng_model._graph = graph
     else:
-        if type(parent) == str:
-            parent = session.query(models.Node_Graph).filter(
-                models.Node_Graph.graph_id == graph.id,
-                models.Node_Graph.name == parent).first()
-            not_found_except(parent, "parent")
-        else:
-            parent = get_model(session, parent, models.Node_Graph)
-            if parent.graph_id != graph.id:
-                raise HTTPException(
-                    status.HTTP_400_BAD_REQUEST,
-                    "parent node not in graph"
-                )
+        parent = get_model(session, parent, models.Node_Graph)
+        if parent.graph_id != graph.id:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                "parent node not in graph"
+            )
+        if parent._node.type == contract.NodeTypes.population_node:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                "population node cannot have child"
+            )
+        if (parent._node.type == contract.NodeTypes.unary_node and 
+            len(parent._child_node_graphs) == 1):
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                "unary node already has child"
+            )
         nnode_graph = node_graphs_q.filter(models.Node_Graph.name == node_graph.name).first()
         already_exists_except(nnode_graph, f"node_graph with name \"{node_graph.name}\"")
         ng_model = to_model(node_graph, models.Node_Graph)
@@ -835,3 +841,113 @@ def delete_program(session: Session,
     session.delete(program)
     session.flush()
 
+
+# Gen
+
+
+def _make_function(fun: models.Function) -> dict[str, header_gen.Function]:
+    to_header = {
+        contract.FunctionTypes.any: header_gen.Any,
+        contract.FunctionTypes.conditions_for_stopping: header_gen.ConditionsForStopping,
+        contract.FunctionTypes.crossingover: header_gen.Crossingover,
+        contract.FunctionTypes.end_node: header_gen.EndNode,
+        contract.FunctionTypes.end_node_log: header_gen.EndNodeLog,
+        contract.FunctionTypes.fitness: header_gen.Fitness,
+        contract.FunctionTypes.mutation: header_gen.Mutation,
+        contract.FunctionTypes.new_generation_log: header_gen.NewGenerationLog,
+        contract.FunctionTypes.pooling_populations: header_gen.PoolingPopulations,
+        contract.FunctionTypes.selection: header_gen.Selection,
+        contract.FunctionTypes.start_node: header_gen.StartNode,
+        contract.FunctionTypes.start_node_log: header_gen.StartNodeLog,
+        contract.FunctionTypes.start_population: header_gen.StartPopulation
+    }
+    return {fun.name: to_header[fun.type](
+        name=fun.name,
+        gene_type=fun.gene_type,
+        code=fun.code,
+        params=[header_gen.Param(
+            type=param.type,
+            name=param.name,
+            is_const=param.is_const,
+            is_ref=param.is_ref
+        ) for param in fun._params])}
+
+
+def _make_graph_from_root(node_graph: models.Node_Graph) -> tuple[graph_gen.Node,
+                                                                dict[str, header_gen.Function]]:
+    node = node_graph._node
+
+    funs = [(fun_node._function, 
+             fun_node._args) 
+             for fun_node in node._function_associations]
+    data = {}
+    used_functions = {}
+    for fun, args in funs:
+        data.update({fun.type: (fun.name, [arg.arg for arg in args])})
+    next_nodes = node_graph._child_node_graphs
+    if node.type == contract.NodeTypes.population_node:
+        res_node = graph_gen.PopulationNode(
+            id=node_graph.name,
+            gene_type=node.gene_type,
+            **data
+        )
+    elif node.type == contract.NodeTypes.unary_node:
+        if len(next_nodes) == 0:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                "incomplete graph"
+            )
+        next_node, used_functions = _make_graph_from_root(next_nodes[0])
+        res_node = graph_gen.UnaryNode(
+            id=node_graph.name, 
+            gene_type=node.gene_type, 
+            next_node=next_node
+            **data
+        )
+    else:
+        if len(next_nodes) == 0:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                "incomplete graph"
+            )
+        ress = [_make_graph_from_root(next_node) for next_node in next_nodes]
+        next_nodess = [res[0] for res in ress]
+        for res in ress:
+            used_functions.update(res[1])
+        res_node = graph_gen.K_Node(
+            id=node_graph.name,
+            gene_type=node.gene_type,
+            next_nodes=next_nodess,
+            **data
+        )
+    for fun in funs:
+        if used_functions.get(fun[0].name) is None:
+            used_functions.update(_make_function(fun[0]))
+
+    return res_node, used_functions
+
+
+def gen_program(session: Session,
+                program: int | models.Program | str) -> str:
+    program = get_model(session, program, models.Program)
+    libs = [header_gen.Library(lib.name, lib.is_stl) for lib in program._libraries]
+    vars = [header_gen.Variable(var.type, 
+                             var.name, 
+                             [arg.arg for arg in var._args], 
+                             var.is_const) 
+                             for var in program._global_vars]
+    functions: dict[str, header_gen.Function] = {}
+    graphs: list[graph_gen.Node] = []
+    for graph in program._graphs:
+        root = session.query(models.Node_Graph).filter(
+            models.Node_Graph.graph_id == graph.id,
+            (models.Node_Graph.parent_node_graph_id.__eq__(None))).first()
+        node, funs = _make_graph_from_root(root)
+        for fun_name, fun in funs.items():
+            if functions.get(fun_name) is None:
+                functions.update({fun_name: fun})
+        graphs.append(node)
+    functions = [fun for _, fun in functions.items()]
+    graph_gens = [graph.gen() for graph in graphs]
+    header = header_gen.Header(libs, vars, functions).gen()
+    return header + "".join(graph_gens)

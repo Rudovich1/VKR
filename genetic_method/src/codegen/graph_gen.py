@@ -1,4 +1,4 @@
-from headers import GA, GAI, GAIT
+from genetic_method.src.codegen.header_gen import GA, GAI, GAIT
 
 GAE = GA + "EvolutionTree::"
 
@@ -9,17 +9,17 @@ class Node(object):
             self,
             id: str,
             gene_type: str,
-            fitness: tuple[str, list[str]] | None,
-            selection: tuple[str, list[str]] | None,
-            mutation: tuple[str, list[str]] | None,
-            crossingover: tuple[str, list[str]] | None,
-            conditions_for_stopping: tuple[str, list[str]] | None,
-            any: tuple[str, list[str]] | None,
-            end_node: tuple[str, list[str]] | None,
-            start_node: tuple[str, list[str]] | None,
-            start_node_log: tuple[str, list[str]] | None,
-            new_generation_log: tuple[str, list[str]] | None,
-            end_node_log: tuple[str, list[str]] | None):
+            fitness: tuple[str, list[str]] | None = None,
+            selection: tuple[str, list[str]] | None = None,
+            mutation: tuple[str, list[str]] | None = None,
+            crossingover: tuple[str, list[str]] | None = None,
+            conditions_for_stopping: tuple[str, list[str]] | None = None,
+            any: tuple[str, list[str]] | None = None,
+            end_node: tuple[str, list[str]] | None = None,
+            start_node: tuple[str, list[str]] | None = None,
+            start_node_log: tuple[str, list[str]] | None = None,
+            new_generation_log: tuple[str, list[str]] | None = None,
+            end_node_log: tuple[str, list[str]] | None = None):
         
         self.id = id
         self.gene_type = gene_type
@@ -56,7 +56,7 @@ class Node(object):
 class UnaryNode(Node):
 
     def __init__(self, next_node: Node, **kwargs):
-        super.__init__(kwargs)
+        super.__init__(**kwargs)
         self.next_node = next_node
 
     def gen(self) -> str:
@@ -73,10 +73,10 @@ class K_Node(Node):
     def __init__(
             self, 
             next_nodes: list[Node], 
-            pooling_populations: tuple[str, list[str]] | None,
+            pooling_populations: tuple[str, list[str]] | None = None,
             **kwargs):
         
-        super().__init__(kwargs)
+        super().__init__(**kwargs)
         self.next_nodes = next_nodes
         self.pooling_populations = pooling_populations
 
@@ -88,7 +88,8 @@ class K_Node(Node):
             std::unique_ptr<{GAE}K_Node<{self.gene_type}, {len(self.next_nodes)}>> {self.id} = 
                 std::make_unique<{GAE}K_Node<{self.gene_type}, {len(self.next_nodes)}>>
                     (\"{self.id}\", std::move(_NODES_FOR_{self.id}));
-            {self.set_gen_(self.pooling_populations, 'setPoolingPopulations') if self.pooling_populations is not None else ''}
+            {self.name}.setPoolingPopulations({self.pooling_populations[0]}<{len(self.pooling_populations)}>\
+                ()({', '.join(self.pooling_populations[1])}));\n"
             {super().gen()}\
             """
     
@@ -97,10 +98,10 @@ class PopulationNode(Node):
 
     def __init__(
             self, 
-            start_population: tuple[str, list[str]] | None, 
+            start_population: tuple[str, list[str]] | None = None, 
             **kwargs):
         
-        super().__init__(kwargs)
+        super().__init__(**kwargs)
         self.start_population = start_population
 
     def gen(self) -> str:
