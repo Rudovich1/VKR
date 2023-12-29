@@ -1,0 +1,71 @@
+[
+    {
+        "name": "SimpleFitness",
+        "type": "fitness",
+        "gene_type": "double",
+        "vars": [],
+        "code": "double x = chromosome.get()[0].get();\ndouble y = chromosome.get()[1].get();\nreturn FUN(x, y);"
+    },
+    {
+        "name": "SimpleStartPopulation",
+        "type": "start_population",
+        "gene_type": "double",
+        "vars": [],
+        "code": "GeneticAlgorithm::Types::Generation<double> start(100, 2);\nfor (auto& chromosome: start.get())\n\t{chromosome.get()[0].get() = chromosome.get()[1].get() = 0.;}\nGeneticAlgorithm::Types::Population<double> population(2);\npopulation.add(std::move(start));\nreturn population;"
+    },
+    {
+        "name": "SimpleMutation",
+        "type": "mutation",
+        "gene_type": "double",
+        "vars": [],
+        "code": "std::random_device rd;\nstd::mt19937 gen(rd());\nstd::uniform_real_distribution<double> urd(-0.01, 0.01);\nfor (auto& chromosome: generation.get()) {\n\tchromosome.optionalFitness().reset();\n\tchromosome.get()[0].get() += urd(gen);\n\tchromosome.get()[1].get() += urd(gen);\n}"
+    },
+    {
+        "name": "SimpleCrossingover",
+        "type": "crossingover",
+        "gene_type": "double",
+        "vars": [],
+        "code": "GeneticAlgorithm::Types::Generation<double>::Chromosomes_ chromosomes_;\nfor (auto& chromosome: population.get()[0].get()) {chromosomes_.push_back(chromosome);}\nfor (auto& chromosome: population.get()[1].get()) {chromosomes_.push_back(chromosome);}\nreturn GeneticAlgorithm::Types::Generation<double>(std::move(chromosomes_));"
+    },
+    {
+        "name": "SimpleSelection",
+        "type": "selection",
+        "gene_type": "double",
+        "vars": [],
+        "code": "GeneticAlgorithm::Types::Generation<double>::Chromosomes_ chromosomes_ = generation.get();\nsort(chromosomes_.begin(), chromosomes_.end(), \n\t[](const GeneticAlgorithm::Types::Chromosome<double>& a, const GeneticAlgorithm::Types::Chromosome<double>& b)\n\t\t{return a.fitness() < b.fitness();});\nchromosomes_.resize(chromosomes_.size() / 2);\nreturn GeneticAlgorithm::Types::Generation<double>(std::move(chromosomes_));"
+    },
+    {
+        "name": "SimpleConditionsForStopping",
+        "type": "conditions_for_stopping",
+        "gene_type": "double",
+        "vars": [
+            {
+                "name": "start",
+                "type": "std::chrono::steady_clock::time_point",
+                "is_const": false,
+                "is_ref": true
+            },
+            {
+                "name": "work_time",
+                "type": "std::chrono::seconds",
+                "is_const": false,
+                "is_ref": false
+            }
+        ],
+        "code": "return std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - start) > work_time;"
+    },
+    {
+        "name": "SimpleStartNode",
+        "type": "start_node",
+        "gene_type": "double",
+        "vars": [
+            {
+                "name": "start",
+                "type": "std::chrono::steady_clock::time_point",
+                "is_const": false,
+                "is_ref": true
+            }
+        ],
+        "code": "return [&start]() {start = std::chrono::steady_clock::now();};"
+    }
+]

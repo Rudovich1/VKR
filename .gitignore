@@ -43,8 +43,7 @@
 
 *.PNG
 *.log
-!*store.json
-!*new_function.json
+!*startup.json
 *.lock
 *.db
 *__pycache__
