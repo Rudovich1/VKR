@@ -33,7 +33,7 @@
             "type": "selection",
             "gene_type": "double",
             "params": [],
-            "code": "GeneticAlgorithm::Types::Generation<double>::Chromosomes_ chromosomes_ = generation.get();\nsort(chromosomes_.begin(), chromosomes_.end(), \n\t[](const GeneticAlgorithm::Types::Chromosome<double>& a, const GeneticAlgorithm::Types::Chromosome<double>& b)\n\t\t{return a.fitness() < b.fitness();});\nchromosomes_.resize(chromosomes_.size() / 2);\nreturn GeneticAlgorithm::Types::Generation<double>(std::move(chromosomes_));"
+            "code": "GeneticAlgorithm::Types::Generation<double>::Chromosomes_ chromosomes_ = generation.get();\nstd::sort(chromosomes_.begin(), chromosomes_.end(), \n\t[](const GeneticAlgorithm::Types::Chromosome<double>& a, const GeneticAlgorithm::Types::Chromosome<double>& b)\n\t\t{return a.fitness() < b.fitness();});\nchromosomes_.resize(chromosomes_.size() / 2);\nreturn GeneticAlgorithm::Types::Generation<double>(std::move(chromosomes_));"
         },
         {
             "name": "SimpleConditionsForStopping",
@@ -112,6 +112,10 @@
                 },
                 {
                     "name": "iostream",
+                    "is_stl": true
+                },
+                {
+                    "name": "algorithm",
                     "is_stl": true
                 }
             ],
