@@ -2,8 +2,8 @@
 
 #include "knapsack_problem.hpp"
 #include "knapsack_problem_generator.hpp"
-#include "..\tools\benchmark.hpp"
-#include "..\tools\loger.hpp"
+// #include "..\tools\benchmark.hpp"
+// #include "..\tools\loger.hpp"
 #include <vector>
 #include <algorithm>
 #include <cmath>

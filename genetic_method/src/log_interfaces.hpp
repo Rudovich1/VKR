@@ -7,7 +7,7 @@
 
 namespace GeneticAlgorithm
 {
-    namespace Loger
+    namespace LogInterfaces
     {
         template<typename GeneType, typename ... Args>
         struct NewGenerationLogWrapper

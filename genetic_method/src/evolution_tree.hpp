@@ -2,7 +2,8 @@
 
 #include "types.hpp"
 #include "interfaces.hpp"
-#include "loger.hpp"
+#include "log_interfaces.hpp"
+#include "evolution_log.hpp"
 
 #include <chrono>
 #include <string>
@@ -12,6 +13,7 @@
 #include <atomic>
 #include <iostream>
 #include <unordered_set>
+#include <unordered_map>
 #include <stdexcept>
 #include <optional>
 
@@ -22,8 +24,6 @@ namespace GeneticAlgorithm
         template<typename GeneType>
         class Node
         {
-            static inline std::unordered_set<std::string> ids_;
-
         protected:
             std::optional<typename Interfaces::fitnessFunction<GeneType>> fitnessFunction_;
             std::optional<typename Interfaces::selectionFunction<GeneType>> selectionFunction_;
@@ -34,9 +34,9 @@ namespace GeneticAlgorithm
             std::optional<typename Interfaces::endNode<GeneType>> endNode_;
             std::optional<typename Interfaces::startNode<GeneType>> startNode_;
 
-            std::optional<typename Loger::newGenerationLog<GeneType>> newGenerationLog_;
-            std::optional<typename Loger::startNodeLog<GeneType>> startNodeLog_;
-            std::optional<typename Loger::endNodeLog<GeneType>> endNodeLog_;
+            std::optional<typename LogInterfaces::newGenerationLog<GeneType>> newGenerationLog_;
+            std::optional<typename LogInterfaces::startNodeLog<GeneType>> startNodeLog_;
+            std::optional<typename LogInterfaces::endNodeLog<GeneType>> endNodeLog_;
 
             const std::string id_;
 
@@ -44,6 +44,8 @@ namespace GeneticAlgorithm
             virtual bool isSetFunctions_() const; 
 
         public:
+            static inline std::unordered_map<std::string, PopulationLog> logs_;
+
             Node(std::string id);
 
             Node& setFitnessFunction(typename Interfaces::fitnessFunction<GeneType>);
@@ -55,9 +57,9 @@ namespace GeneticAlgorithm
             Node& setEndNode(typename Interfaces::endNode<GeneType>);
             Node& setStartNode(typename Interfaces::startNode<GeneType>);
 
-            Node& setNewGenerationLog(typename Loger::newGenerationLog<GeneType>);
-            Node& setStartNodeLog(typename Loger::startNodeLog<GeneType>);
-            Node& setEndNodeLog(typename Loger::endNodeLog<GeneType>);
+            Node& setNewGenerationLog(typename LogInterfaces::newGenerationLog<GeneType>);
+            Node& setStartNodeLog(typename LogInterfaces::startNodeLog<GeneType>);
+            Node& setEndNodeLog(typename LogInterfaces::endNodeLog<GeneType>);
 
             void evolution(Types::Population<GeneType>&) const;
 
@@ -121,11 +123,11 @@ namespace GeneticAlgorithm
         template<typename GeneType>
         Node<GeneType>::Node(std::string id): id_(std::move(id))
         {
-            if (ids_.find(id_) != ids_.end())
+            if (logs_.find(id_) != logs_.end())
             {
                 throw std::logic_error("id \"" + id_ + "\" already exists");
             }
-            ids_.insert(id_);
+            logs_[id_] = PopulationLog();
         }
 
         template<typename GeneType>
@@ -185,21 +187,21 @@ namespace GeneticAlgorithm
         }
 
         template<typename GeneType>
-        Node<GeneType>& Node<GeneType>::setStartNodeLog(typename Loger::startNodeLog<GeneType> fun)
+        Node<GeneType>& Node<GeneType>::setStartNodeLog(typename LogInterfaces::startNodeLog<GeneType> fun)
         {
             startNodeLog_ = std::move(fun);
             return *this;
         }
 
         template<typename GeneType>
-        Node<GeneType>& Node<GeneType>::setNewGenerationLog(typename Loger::newGenerationLog<GeneType> fun)
+        Node<GeneType>& Node<GeneType>::setNewGenerationLog(typename LogInterfaces::newGenerationLog<GeneType> fun)
         {
             newGenerationLog_ = std::move(fun);
             return *this;
         }
 
         template<typename GeneType>
-        Node<GeneType>& Node<GeneType>::setEndNodeLog(typename Loger::endNodeLog<GeneType> fun)
+        Node<GeneType>& Node<GeneType>::setEndNodeLog(typename LogInterfaces::endNodeLog<GeneType> fun)
         {
             endNodeLog_ = std::move(fun);
             return *this;
@@ -215,8 +217,13 @@ namespace GeneticAlgorithm
         template<typename GeneType>
         void Node<GeneType>::evolution(Types::Population<GeneType>& population) const
         {
+            PopulationLog population_log;
+            GenerationLog generation_log;
+
             if (startNodeLog_.has_value()) {startNodeLog_.value()(population, id_);}
             if (startNode_.has_value()) {startNode_.value()();}
+
+            generation_log.start();
 
             for (Types::Chromosome<GeneType>& chromosome: population.get().back().get())
             {
@@ -224,9 +231,16 @@ namespace GeneticAlgorithm
                 {
                     chromosome.optionalFitness() = fitnessFunction_.value()(chromosome);
                 }
+                generation_log.add(chromosome.fitness());
             }
+
+            generation_log.end();
+            population_log.add(generation_log);
+
             while (!conditionsForStoppingFunction_.value()(population))
             {
+                generation_log.clear();
+
                 Types::Generation<GeneType> new_generation;
                 
                 if (crossingoverFunction_.has_value()) {new_generation = crossingoverFunction_.value()(population);}
@@ -248,10 +262,20 @@ namespace GeneticAlgorithm
                 if (anyFunction_.has_value()) {anyFunction_.value()(population);}
 
                 if (newGenerationLog_.has_value()) {newGenerationLog_.value()(population.get().back(), id_);}
+
+                for (const Types::Chromosome<GeneType>& chromosome: population.get().back().get())
+                {
+                    generation_log.add(chromosome.fitness());
+                }
+                generation_log.end();
+                population_log.add(generation_log);
             }
 
             if (endNode_.has_value()) {endNode_.value()();}
             if (endNodeLog_.has_value()) {endNodeLog_.value()(population, id_);}
+
+            population_log.end();
+            Node::logs_[id_] = std::move(population_log);
         }
 
         template<typename GeneType>
@@ -259,7 +283,6 @@ namespace GeneticAlgorithm
         {
             std::cerr << id_ << ": " << info << '\n';
         }
-
 
         template<typename GeneType>
         UnaryNode<GeneType>::UnaryNode(std::string id, std::unique_ptr<Node<GeneType>>&& node): 
@@ -273,7 +296,6 @@ namespace GeneticAlgorithm
             Node<GeneType>::evolution(population);
             return population;
         }
-
 
         template<typename GeneType, size_t num_nodes>
         K_Node<GeneType, num_nodes>::K_Node(std::string id,
