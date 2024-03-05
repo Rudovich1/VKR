@@ -22,9 +22,8 @@ namespace GeneticAlgorithm
     namespace EvolutionTree
     {
         template<typename GeneType>
-        class Node
+        struct Node
         {
-        protected:
             static inline std::unordered_set<std::string> ids_;
 
             std::optional<typename Interfaces::fitnessFunction<GeneType>> fitnessFunction_;
@@ -45,7 +44,6 @@ namespace GeneticAlgorithm
             void cerrInfo_(std::string) const;
             virtual bool isSetFunctions_() const; 
 
-        public:
             Node(std::string id);
 
             Node& setFitnessFunction(typename Interfaces::fitnessFunction<GeneType>);
@@ -65,33 +63,29 @@ namespace GeneticAlgorithm
 
             virtual Types::Population<GeneType> evolution() = 0;
 
-            mutable NodeLog node_log_;
+            mutable std::shared_ptr<NodeLog> node_log_;
         };
 
 
         template<typename GeneType>
-        class UnaryNode: public Node<GeneType>
+        struct UnaryNode: public Node<GeneType>
         {
-        protected:
-            std::unique_ptr<Node<GeneType>> node_;
+            std::shared_ptr<Node<GeneType>> node_;
             
-        public:
-            UnaryNode(std::string id, std::unique_ptr<Node<GeneType>>&& node);
+            UnaryNode(std::string id, std::shared_ptr<Node<GeneType>> node);
 
             virtual Types::Population<GeneType> evolution() override;
         };
 
 
         template<typename GeneType, size_t num_nodes>
-        class K_Node: public Node<GeneType>
+        struct K_Node: public Node<GeneType>
         {
-        protected:
-            std::array<std::unique_ptr<Node<GeneType>>, num_nodes> nodes_;
+            std::array<std::shared_ptr<Node<GeneType>>, num_nodes> nodes_;
             std::optional<typename Interfaces::poolingPopulations<GeneType, num_nodes>> poolingPopulations_;
             virtual bool isSetFunctions_() const override;
 
-        public:
-            K_Node(std::string id, std::array<std::unique_ptr<Node<GeneType>>, num_nodes>&& nodes);
+            K_Node(std::string id, std::array<std::shared_ptr<Node<GeneType>>, num_nodes> nodes);
 
             K_Node& setPoolingPopulations(typename Interfaces::poolingPopulations<GeneType, num_nodes>);
 
@@ -100,13 +94,11 @@ namespace GeneticAlgorithm
 
 
         template<typename GeneType>
-        class PopulationNode: public Node<GeneType>
+        struct PopulationNode: public Node<GeneType>
         {
-        protected:
             std::optional<typename Interfaces::startPopulationFunction<GeneType>> startPopulationFunction_;
             virtual bool isSetFunctions_() const override;
 
-        public:
             PopulationNode(std::string id);
 
             PopulationNode& setStartPopulationFunction(typename Interfaces::startPopulationFunction<GeneType>);
@@ -123,7 +115,7 @@ namespace GeneticAlgorithm
     namespace EvolutionTree
     {
         template<typename GeneType>
-        Node<GeneType>::Node(std::string id): id_(std::move(id)), node_log_(id_)
+        Node<GeneType>::Node(std::string id): id_(std::move(id)), node_log_(std::make_shared<NodeLog>(id_))
         {
             if (ids_.find(id_) != ids_.end())
             {
@@ -277,7 +269,7 @@ namespace GeneticAlgorithm
             if (endNodeLog_.has_value()) {endNodeLog_.value()(population, id_);}
 
             population_log.end();
-            node_log_.population_log_ = std::move(population_log);
+            node_log_->population_log_ = std::move(population_log);
         }
 
         template<typename GeneType>
@@ -287,25 +279,34 @@ namespace GeneticAlgorithm
         }
 
         template<typename GeneType>
-        UnaryNode<GeneType>::UnaryNode(std::string id, std::unique_ptr<Node<GeneType>>&& node): 
-            Node<GeneType>(id), node_(std::move(node)) {}
+        UnaryNode<GeneType>::UnaryNode(std::string id, std::shared_ptr<Node<GeneType>> node): 
+            Node<GeneType>(id), node_(std::move(node)) 
+        {
+            Node<GeneType>::node_log_->ch_node_logs_.push_back(node_->node_log_);
+        }
 
         template<typename GeneType>
         Types::Population<GeneType> UnaryNode<GeneType>::evolution()
         {
-            Node<GeneType>::node_log_.start();
+            
+            Node<GeneType>::node_log_->start();
             Types::Population<GeneType> population = node_->evolution();
-            Node<GeneType>::node_log_.ch_node_logs_.push_back(std::move(node_->node_log_));
             node_.reset();
             Node<GeneType>::evolution(population);
-            Node<GeneType>::node_log_.end();
+            Node<GeneType>::node_log_->end();
             return population;
         }
 
         template<typename GeneType, size_t num_nodes>
         K_Node<GeneType, num_nodes>::K_Node(std::string id,
-            std::array<std::unique_ptr<Node<GeneType>>, num_nodes>&& nodes):
-            Node<GeneType>(id), nodes_(std::move(nodes)) {}
+            std::array<std::shared_ptr<Node<GeneType>>, num_nodes> nodes):
+            Node<GeneType>(id), nodes_(std::move(nodes)) 
+        {
+            for (size_t i = 0; i < num_nodes; ++i)
+            {
+                Node<GeneType>::node_log_->ch_node_logs_.push_back(nodes_[i]->node_log_);
+            }
+        }
 
         template<typename GeneType, size_t num_nodes>
         K_Node<GeneType, num_nodes>& K_Node<GeneType, num_nodes>::setPoolingPopulations(
@@ -324,14 +325,14 @@ namespace GeneticAlgorithm
         template<typename GeneType, size_t num_nodes>
         Types::Population<GeneType> K_Node<GeneType, num_nodes>::evolution()
         {
-            Node<GeneType>::node_log_.start();
+            Node<GeneType>::node_log_->start();
             std::array<Types::Population<GeneType>, num_nodes> populations;
             std::vector<std::thread> treads;
 
             std::function evolute_node = 
-            [](Types::Population<GeneType>& population, std::unique_ptr<GeneticAlgorithm::EvolutionTree::Node<GeneType>>& node_ptr)
+            [](Types::Population<GeneType>& population, std::shared_ptr<GeneticAlgorithm::EvolutionTree::Node<GeneType>>& node_ptr)
             {
-                population = std::move(node_ptr->evolution());
+                population = node_ptr->evolution();
             };
 
             for (size_t i = 0; i < num_nodes; ++i)
@@ -345,12 +346,11 @@ namespace GeneticAlgorithm
             Types::Population<GeneType> population = poolingPopulations_.value()(populations);
             for (size_t i = 0; i < num_nodes; ++i)
             {
-                Node<GeneType>::node_log_.ch_node_logs_.push_back(std::move(nodes_[i]->node_log_));
                 nodes_[i].reset();
             }
             
             Node<GeneType>::evolution(population);
-            Node<GeneType>::node_log_.end();
+            Node<GeneType>::node_log_->end();
             return population;
         }
 
@@ -375,10 +375,10 @@ namespace GeneticAlgorithm
         template<typename GeneType>
         Types::Population<GeneType> PopulationNode<GeneType>::evolution()
         {
-            Node<GeneType>::node_log_.start();
+            Node<GeneType>::node_log_->start();
             Types::Population<GeneType> population = startPopulationFunction_.value()();
             Node<GeneType>::evolution(population);
-            Node<GeneType>::node_log_.end();
+            Node<GeneType>::node_log_->end();
             return population;
         }
     }

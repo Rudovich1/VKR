@@ -3,6 +3,8 @@
 #include "evolution_tree.hpp"
 
 #include <functional>
+#include <thread>
+#include <iostream>
 
 namespace GeneticAlgorithm
 {
@@ -10,24 +12,26 @@ namespace GeneticAlgorithm
     class General
     {
     public:
-        General(std::unique_ptr<EvolutionTree::Node<GeneType>>&& node);
-        std::pair<Types::Chromosome<GeneType>, NodeLog> calc();
+        General(std::shared_ptr<EvolutionTree::Node<GeneType>> node);
+        std::pair<Types::Chromosome<GeneType>, std::shared_ptr<NodeLog>> calc();
 
     private:
-        std::unique_ptr<EvolutionTree::Node<GeneType>> node_;
+        std::shared_ptr<EvolutionTree::Node<GeneType>> node_;
     };
 } // end namespace GeneticAlgorithm
 
 namespace GeneticAlgorithm
 {
     template<typename GeneType>
-    General<GeneType>::General(std::unique_ptr<EvolutionTree::Node<GeneType>>&& node): node_(std::move(node)) {}
+    General<GeneType>::General(std::shared_ptr<EvolutionTree::Node<GeneType>> node): node_(std::move(node)) {}
 
     template<typename GeneType>
-    std::pair<Types::Chromosome<GeneType>, NodeLog> General<GeneType>::calc()
+    std::pair<Types::Chromosome<GeneType>, std::shared_ptr<NodeLog>> General<GeneType>::calc()
     {
+        auto runtime_log = std::thread(runtimeLog, std::ref(node_->node_log_));
         Types::Population<GeneType> res_population = node_->evolution();
-        NodeLog log = std::move(node_->node_log_);
+        runtime_log.join();
+        std::shared_ptr<NodeLog> log = node_->node_log_;
         node_.reset();
 
         Types::Chromosome<GeneType>& best_res = res_population.get().back().get()[0];
