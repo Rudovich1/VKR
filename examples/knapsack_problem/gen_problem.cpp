@@ -5,13 +5,13 @@
 
 int main()
 {
-    // auto kp = KnapsackProblemGenerator::generateProblem(1000000, 1, 100000, 1, 1000, 100000, 100000);
-    // KnapsackProblemGenerator::saveProblem(kp, "task1.txt");
+    auto kp = KnapsackProblemGenerator::generateProblemNorm(1000, 10000, 3000, 100, 30, 100000);
+    KnapsackProblemGenerator::saveProblem(kp, "task1.txt");
 
-    auto kp = KnapsackProblemGenerator::loadProblem("task1.txt");
+    // auto kp = KnapsackProblemGenerator::loadProblem("task1.txt");
     // auto dp_res = KnapsackProblemSolver::dynamicProgrammingMethod(kp, 60);
-    auto bb_res = KnapsackProblemSolver::branchAndBoundaryMethod(kp, 60);
-    auto greedy_res = KnapsackProblemSolver::greedyMethod(kp, 60);
+    auto bb_res = KnapsackProblemSolver::branchAndBoundaryMethod(kp, 10);
+    auto greedy_res = KnapsackProblemSolver::greedyMethod(kp, 10);
 
     std::ofstream out("res.txt");
     out << std::setprecision(6) << std::fixed;

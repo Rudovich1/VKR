@@ -11,26 +11,52 @@ class KnapsackProblemGenerator
     
     static KnapsackProblem generateProblem(
         size_t size, 
-        int min_weight,
-        int max_weight,
-        double min_value,
-        double max_value,
-        int min_knapsack_size,
-        int max_knapsack_size)
+        long long min_weight,
+        long long max_weight,
+        long long min_value,
+        long long max_value,
+        size_t min_knapsack_size,
+        size_t max_knapsack_size)
     {
         std::random_device rd;
         std::mt19937 gen(rd());
 
-        std::vector<std::pair<int, double>> items(size);
+        std::vector<std::pair<long long, long long>> items(size);
 
         for (size_t i = 0; i < size; ++i)
         {
-            
-            items[i] = std::make_pair(std::uniform_int_distribution<int>(min_weight, max_weight)(gen),
-             std::uniform_real_distribution<double>(min_value, max_value)(gen));
+            items[i] = std::make_pair(std::uniform_int_distribution<long long>(min_weight, max_weight)(gen),
+             std::uniform_int_distribution<long long>(min_value, max_value)(gen));
         }
 
-        int knapsack_size = std::uniform_int_distribution<int>(min_knapsack_size, max_knapsack_size)(gen);
+        int knapsack_size = std::uniform_int_distribution<long long>(min_knapsack_size, max_knapsack_size)(gen);
+
+        return KnapsackProblem(size, items, knapsack_size);
+    }
+
+    static KnapsackProblem generateProblemNorm(
+        size_t size, 
+        long long M_w,
+        long long S_w,
+        long long M_v,
+        long long S_v,
+        size_t knapsack_size)
+    {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+
+        std::vector<std::pair<long long, long long>> items(size);
+        
+        auto w_dist = std::normal_distribution<double>(M_w, S_w);
+        auto v_dist = std::normal_distribution<double>(M_v, S_w);
+
+        for (size_t i = 0; i < size; ++i)
+        {
+            auto w = (long long)w_dist(gen);
+            auto v = (long long)v_dist(gen);
+            if (w < 0 || v < 0) {--i; continue;}
+            items[i] = std::make_pair(w, v);
+        }
 
         return KnapsackProblem(size, items, knapsack_size);
     }
@@ -40,10 +66,10 @@ class KnapsackProblemGenerator
         std::ifstream in(file_path);
 
         size_t size;
-        int knapsack_size;
+        size_t knapsack_size;
         in >> size >> knapsack_size;
 
-        std::vector<std::pair<int, double>> items(size);
+        std::vector<std::pair<long long, long long>> items(size);
 
         for (size_t i = 0; i < size; ++i)
         {

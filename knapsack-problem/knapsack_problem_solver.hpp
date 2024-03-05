@@ -526,7 +526,7 @@ public:
         {
             int level;
             double profit;
-            int weight;
+            long long weight;
             double bound;
         };
 
@@ -535,7 +535,7 @@ public:
             return a.bound < b.bound;
         }
 
-        double bound(const Node& u, int n, int W, const std::vector<double>& p, const std::vector<int>& w) 
+        double bound(const Node& u, size_t n, size_t W, const std::vector<long long>& p, const std::vector<long long>& w) 
         {
             if (u.weight >= W) 
             {
@@ -557,7 +557,7 @@ public:
             return bound;
         }
 
-        double solve(int n, int W, const std::vector<double>& p, const std::vector<int>& w, size_t max_work_time) 
+        double solve(size_t n, size_t W, const std::vector<long long>& p, const std::vector<long long>& w, size_t max_work_time) 
         {
             std::priority_queue<Node> Q;
             Node u, v;
@@ -652,8 +652,8 @@ public:
             _START_BENCHMARK_;
         #endif
 
-        std::vector<double> v(knapsack_problem.size_);
-        std::vector<int> w(knapsack_problem.size_);
+        std::vector<long long> v(knapsack_problem.size_);
+        std::vector<long long> w(knapsack_problem.size_);
 
         for (size_t i = 0; i < knapsack_problem.size_; ++i)
         {
@@ -715,11 +715,11 @@ public:
         std::vector<KnapsackProblem::Item> items = knapsack_problem.items_;
 
         std::sort(items.begin(), items.end(), [](KnapsackProblem::Item a, KnapsackProblem::Item b){return a.value_ * b.weight_ > b.value_ * a.weight_;});
-        std::multiset<std::pair<int, double>> st;
+        std::multiset<std::pair<long long, long long>> st;
 
-        int w = 0;
-        double v = 0.;
-        double best_v = 0.;
+        long long w = 0;
+        long long v = 0.;
+        long long best_v = 0.;
 
         for (size_t i = 0; i < knapsack_problem.size_ && _WORKTIME_(start) < max_work_time; ++i)
         {

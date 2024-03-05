@@ -19,13 +19,13 @@ struct TimeLog
 
     TimeLog(): start_(std::chrono::steady_clock::now()), end_(std::chrono::steady_clock::now()) {}
 
-    void start() {start_ = std::chrono::steady_clock::now();}
-    void end() {end_ = std::chrono::steady_clock::now();}
+    virtual void start() {start_ = std::chrono::steady_clock::now();}
+    virtual void end() {end_ = std::chrono::steady_clock::now();}
 };
 
-struct BaseStatistics: public DataLog, public TimeLog {};
+struct BaseLog: public DataLog, public TimeLog {};
 
-struct GenerationLog: public BaseStatistics
+struct GenerationLog: public BaseLog
 {
     void add(double sample)
     {
@@ -35,31 +35,80 @@ struct GenerationLog: public BaseStatistics
         ++num_samples_;
     }
 
-    void clear()
+    virtual void start()
     {
+        TimeLog::start();
         min_result_ = LLONG_MAX;
         max_result_ = LLONG_MIN;
         average_result_ = 0.;
         num_samples_ = 0;
-        start_ = end_ = std::chrono::steady_clock::now();
+    }
+
+    virtual void end()
+    {
+        TimeLog::end();
+        average_result_ /= num_samples_;
     }
 };
 
-struct PopulationLog: public BaseStatistics
+struct PopulationLog: public BaseLog
 {
-    std::vector<GenerationLog> generations;
-    size_t num_improvements = 0;
+    std::vector<GenerationLog> generations_;
+    size_t num_improvements_ = 0;
+
+    // PopulationLog() {}
+
+    // PopulationLog(PopulationLog&& population_log):
+    //     generations_(std::move(population_log.generations_)),
+    //     num_improvements_(population_log.num_improvements_) {}
+
+    // PopulationLog& operator=(PopulationLog&& population_log)
+    // {
+    //     generations_ = std::move(population_log.generations_);
+    //     num_improvements_ = population_log.num_improvements_;
+    //     return *this;
+    // }
 
     void add(GenerationLog generation_log)
     {
         if (max_result_ < generation_log.max_result_)
         {
-            ++num_improvements;
+            ++num_improvements_;
         }
         min_result_ = std::min(min_result_, generation_log.max_result_);
         max_result_ = std::max(max_result_, generation_log.max_result_);
         average_result_ += generation_log.max_result_;
         ++num_samples_;
-        generations.push_back(std::move(generation_log));
+        generations_.push_back(std::move(generation_log));
     }
+
+    virtual void start()
+    {
+        TimeLog::start();
+        min_result_ = LLONG_MAX;
+        max_result_ = LLONG_MIN;
+        average_result_ = 0.;
+        num_samples_ = 0;
+        generations_.clear();
+    }
+
+    virtual void end()
+    {
+        TimeLog::end();
+        average_result_ /= num_samples_;
+    }
+};
+
+struct NodeLog: public TimeLog
+{
+    std::string node_id_;
+    PopulationLog population_log_;
+    std::vector<NodeLog> ch_node_logs_;
+
+    NodeLog(std::string node_id): node_id_(std::move(node_id)) {}
+
+    // NodeLog(NodeLog&& node_log):
+    //     node_id_(std::move(node_log.node_id_)),
+    //     population_log_(std::move(node_log.population_log_)),
+    //     ch_node_logs_(std::move(node_log.ch_node_logs_)) {}
 };

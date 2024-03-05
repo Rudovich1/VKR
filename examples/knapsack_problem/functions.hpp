@@ -31,7 +31,11 @@ struct FitnessFunction: public FitnessFunctionWrapper<bool, const KnapsackProble
             }
             if (weight > knapsack_problem.knapsack_capacity_)
             {
-                value -= (max_v / min_w) * (knapsack_problem.knapsack_capacity_ - weight);
+                value -= (max_v / min_w) * (weight - knapsack_problem.knapsack_capacity_);
+                if (value < 0)
+                {
+                    value = 0;
+                }
             }
             return value;
         };
@@ -152,8 +156,7 @@ struct SelectionFunction: public SelectionFunctionWrapper<bool, size_t>
             for (size_t i = 0; i < num_chromosomes; ++i)
             {
                 size_t ch_ind = std::lower_bound(probabilities.begin(), probabilities.end(), uid(gen)) - probabilities.begin();
-                const auto& ch = generation.get()[ch_ind];
-                chromosomes.push_back(ch);
+                chromosomes[i] = generation.get()[ch_ind];
             }
             return Generation<bool>(std::move(chromosomes));
         };
@@ -231,7 +234,7 @@ Node<bool>& setFuns(
     double max_v = LLONG_MIN, min_w = LLONG_MAX;
     for (const auto& item: kp.items_)
     {
-        max_v = std::max(max_v, item.value_);
+        max_v = std::max(max_v, (double)item.value_);
         min_w = std::min(min_w, (double)item.weight_);
     }
     auto cur_times = std::make_shared<size_t>(0);
@@ -270,8 +273,8 @@ UnaryNode<bool>& setFuns(
 }
 
 template<size_t num_populations>
-GeneticAlgorithm::EvolutionTree::K_Node<bool, num_populations>& setFuns(
-    GeneticAlgorithm::EvolutionTree::K_Node<bool, num_populations>& node,
+K_Node<bool, num_populations>& setFuns(
+    K_Node<bool, num_populations>& node,
     const KnapsackProblem& kp,
     size_t num_chromosomes,
     double mutation_coef,

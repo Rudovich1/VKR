@@ -11,7 +11,7 @@ namespace GeneticAlgorithm
     {
     public:
         General(std::unique_ptr<EvolutionTree::Node<GeneType>>&& node);
-        Types::Chromosome<GeneType> calc();
+        std::pair<Types::Chromosome<GeneType>, NodeLog> calc();
 
     private:
         std::unique_ptr<EvolutionTree::Node<GeneType>> node_;
@@ -24,9 +24,10 @@ namespace GeneticAlgorithm
     General<GeneType>::General(std::unique_ptr<EvolutionTree::Node<GeneType>>&& node): node_(std::move(node)) {}
 
     template<typename GeneType>
-    Types::Chromosome<GeneType> General<GeneType>::calc()
+    std::pair<Types::Chromosome<GeneType>, NodeLog> General<GeneType>::calc()
     {
         Types::Population<GeneType> res_population = node_->evolution();
+        NodeLog log = std::move(node_->node_log_);
         node_.reset();
 
         Types::Chromosome<GeneType>& best_res = res_population.get().back().get()[0];
@@ -34,6 +35,6 @@ namespace GeneticAlgorithm
         {
             if (chormosome.fitness() > best_res.fitness()) {best_res = chormosome;}
         }
-        return best_res;
+        return std::make_pair(std::move(Types::Chromosome<GeneType>(best_res)), std::move(log));
     }
 } // namespace GeneticAlgorithm

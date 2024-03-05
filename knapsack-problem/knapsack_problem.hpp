@@ -9,18 +9,18 @@ struct KnapsackProblem
 {
     struct Item
     {
-        int weight_;
-        double value_;
+        long long weight_;
+        long long value_;
 
         Item(){}
-        Item(std::pair<int, double> item): weight_(item.first), value_(item.second) {}
+        Item(std::pair<long long, long long> item): weight_(item.first), value_(item.second) {}
     };
 
     std::vector<Item> items_;
     size_t size_;
-    int knapsack_capacity_;
+    size_t knapsack_capacity_;
 
-    KnapsackProblem(size_t size, const std::vector<std::pair<int, double>>& items, int knapsack_capacity): 
+    KnapsackProblem(size_t size, const std::vector<std::pair<long long, long long>>& items, size_t knapsack_capacity): 
         size_(size), 
         items_(size), 
         knapsack_capacity_(knapsack_capacity)
@@ -52,7 +52,7 @@ std::ostream& operator<< (std::ostream& out, const KnapsackProblem& knapsack_pro
     out << "Knapsack size: " << knapsack_problem.size_ << '\n';
     out << "Knapsack capacity: " << knapsack_problem.knapsack_capacity_ << '\n';
     long long w = 0;
-    double v = 0.;
+    long long v = 0.;
     for (size_t i = 0; i < knapsack_problem.size_; ++i)
     {
         out << "(" << std::setw(10) << knapsack_problem.items_[i].weight_ << " | " << std::setw(10) << knapsack_problem.items_[i].value_ << ")\n";
