@@ -5,422 +5,306 @@
 #include <iostream>
 #include <stdexcept>
 #include <optional>
+#include <utility>
 
-#include "tools/buffer_type.hpp"
+#include "tools/suffix.hpp"
 
 namespace GeneticAlgorithm
 {
     namespace Types
     {
-        template<typename GeneType>
-        class Gene
-        {
-        public:
-            using Gene_ = Gene<GeneType>;
-
-            Gene();
-            Gene(const GeneType& data);
-            Gene(GeneType&& data);
-            Gene(const Gene_& gene);
-            Gene(Gene_&& gene);
-
-            Gene_& operator=(const Gene_& gene);
-            Gene_& operator=(Gene_&& gene);
-
-            bool operator==(const Gene_& gene) const;
-            bool operator!=(const Gene_& gene) const;
-
-            GeneType& get();
-            const GeneType& get() const;
-
-        private:
-            GeneType data_;
-        };
-
-        template<typename GeneType>
+        template<class GeneType, class FitnessType>
         class Chromosome
         {
         public:
-            using Genes_ = std::vector<Gene<GeneType>>;
-            using Chromosome_ = Chromosome<GeneType>;
+            using Genes_ = std::vector<GeneType>;
+            using Chromosome_ = Chromosome<GeneType, FitnessType>;
 
-            Chromosome();
-            Chromosome(size_t size);
-            Chromosome(const Genes_& genes);
-            Chromosome(Genes_&& genes);
-            Chromosome(const Chromosome_& chromosome);
-            Chromosome(Chromosome_&& chromosome);
+            Chromosome(): genes_() {}
+            Chromosome(const Genes_::allocator_type& __a): genes_(__a) {}
+            Chromosome(Genes_::size_type __n): genes_(__n) {}
+            Chromosome(Genes_::size_type __n, const Genes_::allocator_type& __a): genes_(__n, __a) {}
+            Chromosome(Genes_::size_type __n, const GeneType& __x): genes_(__n, __x) {}
+            Chromosome(Genes_::size_type __n, const GeneType& __x, const Genes_::allocator_type& __a): genes_(__n, __x, __a) {}
+            template<class _Iterator> 
+            Chromosome(_Iterator __first, _Iterator __last): genes_(__first, __last) {}
+            template<class _Iterator> 
+            Chromosome(_Iterator __first, _Iterator __last, const Genes_::allocator_type& __a): genes_(__first, __last, __a) {}
 
-            Chromosome_& operator=(const Chromosome_& chromosome);
-            Chromosome_& operator=(Chromosome_&& chromosome);
+            Chromosome(const Genes_& genes): genes_(genes) {}
+            Chromosome_& operator=(const Genes_& genes) 
+            {
+                genes_ = genes;
+                fitness_.reset();
+                return *this;
+            }
+            Chromosome(const Chromosome_& chromosome): genes_(chromosome.genes_), fitness_(chromosome.fitness_) {}
+            Chromosome_& operator=(const Chromosome_& chromosome) 
+            {
+                if (this != &chromosome)
+                {
+                    genes_ = chromosome.genes_; 
+                    fitness_ = chromosome.fitness_;
+                }
+                return *this;
+            }
 
-            bool operator==(const Chromosome_& chromosome) const;
-            bool operator!=(const Chromosome_& chromosome) const;
+            Chromosome(std::initializer_list<GeneType> __il): genes_(__il) {}
+            Chromosome(std::initializer_list<GeneType> __il, const Genes_::allocator_type& __a): genes_(__il, __a) {}
+            Chromosome_& operator=(std::initializer_list<GeneType> __il) 
+            {
+                genes_ = __il; 
+                fitness_.reset();
+                return *this;
+            }
+            
+            Chromosome(Genes_&& genes): genes_(std::move(genes)) {}
+            Chromosome_& operator=(Genes_&& genes) 
+            {
+                genes_ = std::move(genes); 
+                fitness_.reset();
+                return *this;
+            }
+            Chromosome(Chromosome_&& chromosome): genes_(std::move(chromosome.genes_)), fitness_(std::move(chromosome.fitness_)) {}
+            Chromosome_& operator=(Chromosome_&& chromosome) 
+            {
+                if (this != &chromosome)
+                {
+                    genes_ = std::move(chromosome.genes_);
+                    fitness_ = std::move(chromosome.fitness_);
+                }
+                return *this;
+            }
 
-            Genes_& get();
-            const Genes_& get() const;
+            Genes_& get() {fitness_.reset(); return genes_;}
+            const Genes_& get() const {return genes_;}
+            const Genes_& cget() const {return std::as_const(genes_);}
 
-            std::optional<double>& optionalFitness();
+            std::optional<FitnessType>& getFitness() {return fitness_;}
+            const std::optional<FitnessType>& getFitness() const {return fitness_;}
 
-            double& fitness();
-            const double& fitness() const;
-
-        private:
+        protected:
             Genes_ genes_;
-            std::optional<double> fitness_;
+            std::optional<FitnessType> fitness_;
         };
 
-        template<typename GeneType>
+        template<class GeneType, class FitnessType, size_t num_genes>
+        class StatChromosome
+        {
+        public:
+            using Genes_ = std::array<GeneType, num_genes>;
+            using StatChromosome_ = StatChromosome<GeneType, num_genes, FitnessType>;
+
+            StatChromosome(): genes_({}) {}
+            
+            StatChromosome(const Genes_& genes): genes_(genes) {}
+            StatChromosome_& operator=(const Genes_& genes) 
+            {
+                genes_ = genes; 
+                fitness_.reset();
+                return *this;
+            }
+            StatChromosome(const StatChromosome_& stat_chromosome): genes_(stat_chromosome.genes_), fitness_(stat_chromosome.fitness_) {}
+            StatChromosome_& operator=(const StatChromosome_& stat_chromosome) 
+            {
+                if (this != &stat_chromosome)
+                {
+                    genes_ = stat_chromosome.genes_;
+                    fitness_ = stat_chromosome.fitness_;
+                }
+                return *this;
+            }
+
+            StatChromosome(std::initializer_list<GeneType> __il): genes_(__il) {}
+            StatChromosome_& operator=(std::initializer_list<GeneType> __il)
+            {
+                genes_ = __il;
+                fitness_.reset();
+                return *this;
+            }
+
+            StatChromosome(Genes_&& genes): genes_(std::move(genes)) {}
+            StatChromosome_& operator=(Genes_&& genes)
+            {
+                genes_ = std::move(genes);
+                fitness_.reset();
+                return *this;
+            }
+            StatChromosome(StatChromosome_&& stat_chromosome): genes_(std::move(stat_chromosome.genes_)), fitness_(std::move(stat_chromosome.fitness_)) {}
+            StatChromosome_& operator=(StatChromosome&& stat_chromosome)
+            {
+                if (this != &stat_chromosome)
+                {
+                    genes_ = std::move(stat_chromosome.genes_);
+                    fitness_ = std::move(stat_chromosome.fitness_);
+                }
+                return *this;
+            }
+
+            Genes_& get() {fitness_.reset(); return genes_;}
+            const Genes_& get() const {return genes_;}
+            const Genes_& cget() const {return std::as_const(genes_);}
+
+            std::optional<FitnessType>& getFitness() {return fitness_;}
+            const std::optional<FitnessType>& getFitness() const {return fitness_;}
+
+        protected:
+            Genes_ genes_;
+            std::optional<FitnessType> fitness_;
+        };
+
+        template<class GeneType, class FitnessType>
         class Generation
         {
         public:
-            using Chromosomes_ = std::vector<Chromosome<GeneType>>;
-            using Generation_ = Generation<GeneType>;
+            using Chromosome_ = Chromosome<GeneType, FitnessType>; 
+            using Chromosomes_ = std::vector<Chromosome_>;
+            using Generation_ = Generation<GeneType, FitnessType>;
 
-            Generation();
-            Generation(size_t generation_size, size_t chromosome_size);
-            Generation(const Chromosomes_& chromosomes);
-            Generation(Chromosomes_&& chromosomes);
-            Generation(const Generation_& generation);
-            Generation(Generation_&& generation);
+            Generation(): chromosomes_() {}
+            Generation(const Chromosomes_::allocator_type& __a): chromosomes_(__a) {}
+            Generation(Chromosomes_::size_type __n): chromosomes_(__n) {}
+            Generation(Chromosomes_::size_type __n, const Chromosomes_::allocator_type& __a): chromosomes_(__n, __a) {}
+            Generation(Chromosomes_::size_type __n, const Chromosome_& __x): chromosomes_(__n, __x) {}
+            Generation(Chromosomes_::size_type __n, const Chromosome_& __x, const Chromosomes_::allocator_type& __a): chromosomes_(__n, __x, __a) {}
+            template<class _Iterator> 
+            Generation(_Iterator __first, _Iterator __last): chromosomes_(__first, __last) {}
+            template<class _Iterator> 
+            Generation(_Iterator __first, _Iterator __last, const Chromosomes_::allocator_type& __a): chromosomes_(__first, __last, __a) {}
 
-            Generation_& operator=(const Generation_& generation);
-            Generation_& operator=(Generation_&& generation);
+            Generation(const Chromosomes_& chromosomes): chromosomes_(chromosomes) {}
+            Generation_& operator=(const Chromosomes_& chromosomes) {chromosomes_ = chromosomes; return *this;}
+            Generation(const Generation_& generation): chromosomes_(generation.chromosomes_) {}
+            Generation_& operator=(const Generation_& generation) 
+            {
+                if (this != &generation) {chromosomes_ = generation.chromosomes_;}
+                return *this;
+            }
+
+            Generation(std::initializer_list<Chromosome_> __il): chromosomes_(__il) {}
+            Generation(std::initializer_list<Chromosome_> __il, const Chromosomes_::allocator_type& __a): chromosomes_(__il, __a) {}
+            Generation_& operator=(std::initializer_list<Chromosome_> __il) {chromosomes_ = __il; return *this;}
             
-            bool operator==(const Generation_& generation) const;
-            bool operator!=(const Generation_& generation) const;
+            Generation(Chromosomes_&& chromosomes): chromosomes_(std::move(chromosomes)) {}
+            Generation_& operator=(Chromosomes_&& chromosomes) {chromosomes_ = std::move(chromosomes); return *this;}
+            Generation(Generation_&& generation): chromosomes_(std::move(generation.chromosomes_)) {}
+            Generation_& operator=(Generation_&& generation) 
+            {
+                if (this != &generation) {chromosomes_ = std::move(generation.chromosomes_);}
+                return *this;
+            }
 
-            Chromosomes_& get();
-            const Chromosomes_& get() const;
+            Chromosomes_& get() {return chromosomes_;}
+            const Chromosomes_& get() const {return chromosomes_;}
 
         private:
             Chromosomes_ chromosomes_;
         };
 
-        template<typename GeneType>
+        template<class GeneType, class FitnessType, size_t num_genes, size_t num_chromosomes>
+        class StatGeneration
+        {
+        public:
+            using StatChromosome_ = StatChromosome<GeneType, num_genes, FitnessType>;
+            using StatChromosomes_ = std::array<StatChromosome_, num_chromosomes>;
+            using StatGeneration_ = StatGeneration<GeneType, num_genes, num_chromosomes, FitnessType>;
+
+            StatGeneration(): ({}) {}
+            
+            StatGeneration(const StatChromosomes_& stat_chromosomes): stat_chromosomes_(stat_chromosomes) {}
+            StatGeneration_& operator=(const StatChromosomes_& stat_chromosomes) {stat_chromosomes_ = stat_chromosomes; return *this;}
+            StatGeneration(const StatGeneration_& stat_generation): stat_chromosomes_(stat_generation.stat_chromosomes_) {}
+            StatGeneration_& operator=(const StatGeneration_& stat_generation) 
+            {
+                if (this != &stat_generation) {stat_chromosomes_ = stat_generation.stat_chromosomes_;} 
+                return *this;
+            }
+
+            StatGeneration(std::initializer_list<StatChromosome_> __il): stat_chromosomes_(__il) {}
+            StatGeneration_& operator=(std::initializer_list<StatChromosome_> __il) {stat_chromosomes_ = __il; return *this;}
+
+            StatGeneration(StatChromosomes_&& stat_chromosomes): stat_chromosomes_(std::move(stat_chromosomes)) {}
+            StatGeneration_& operator=(StatChromosomes_&& stat_chromosomes) {stat_chromosomes_ = std::move(stat_chromosomes); return *this;}
+            StatGeneration(StatGeneration_&& stat_generation): stat_chromosomes_(std::move(stat_generation.stat_chromosomes_)) {}
+            StatGeneration_& operator=(StatGeneration_&& stat_generation) 
+            {
+                if(this != &stat_generation) {stat_chromosomes_ = std::move(stat_generation.stat_chromosomes_);}
+                return *this;
+            }
+
+            StatChromosomes_& get() {return stat_chromosomes_;}
+            const StatChromosomes_& get() const {return stat_chromosomes_;}
+
+        protected:
+            StatChromosomes_ stat_chromosomes_;
+        };
+
+        template<class GeneType, class FitnessType>
         class Population
         {
         public:
-            using Generations_ = BufferType<Generation<GeneType>>;
-            using Population_ = Population<GeneType>;
+            using Generation_ = Generation<GeneType, FitnessType>;
+            using Generations_ = Suffix<Generation_>;
+            using Population_ = Population<GeneType, FitnessType>;
 
-            Population();
-            Population(size_t buffer_size);
-            Population(const Generations_& generations);
-            Population(Generations_&& generations);
-            Population(const Population_& population);
-            Population(Population_&& population);
+            Population(): generations_() {}
+            Population(size_t suffix_size): generations_(suffix_size) {}
 
-            Population_& operator=(const Population_& population);
-            Population_& operator=(Population_&& population);
+            Population(const Generations_& generations): generations_(generations) {}
+            Population_& operator=(const Generations_& generations) {generations_ = generations; return *this;}
+            Population(const Population_& population): generations_(population.generations_) {}
+            Population_& operator=(const Population_& population) 
+            {
+                if (this != &population) {generations_ = population.generations_;}
+                return *this;
+            }
 
-            Generations_& get();
-            const Generations_& get() const;
+            Population(Generation_&& generations): generations_(std::move(generations)) {}
+            Population_& operator=(Generation_&& generations) {generations_ = std::move(generations); return *this;}
+            Population(Population_&& population): generations_(std::move(population.generations_)) {}
+            Population_& operator=(Population_&& population) 
+            {
+                if (this != &population) {generations_ = std::move(population.generations_);}
+                return *this;
+            }
 
-            Population& add(const Generation<GeneType>& generation);
-            Population& add(Generation<GeneType>&& generation);
+            Generations_& get() {return generations_;}
+            const Generations_& get() const {return generations_;}
 
-        private:
+        protected:
             Generations_ generations_;
-        };        
-    } // end namespace Types
-} // end namespace GeneticAlgorithm
+        };
 
-namespace GeneticAlgorithm
-{
-    namespace Types
-    {
-        template<typename GeneType>
-        Gene<GeneType>::Gene(): data_() {}
-
-        template<typename GeneType>
-        Gene<GeneType>::Gene(const GeneType &data): data_(data) {}
-
-        template<typename GeneType>
-        Gene<GeneType>::Gene(GeneType &&data): data_(std::move(data)) {}
-
-        template<typename GeneType>
-        Gene<GeneType>::Gene(const typename Gene<GeneType>::Gene_& gene): data_(gene.data_) {}
-
-        template<typename GeneType>
-        Gene<GeneType>::Gene(typename Gene<GeneType>::Gene_&& gene): data_(std::move(gene.data_)) {}
-
-        template<typename GeneType>
-        typename Gene<GeneType>::Gene_& Gene<GeneType>::operator=(const typename Gene<GeneType>::Gene_& gene)
+        template<class GeneType, class FitnessType, size_t num_genes, size_t num_chromosomes, size_t suffix_size>
+        class StatPopulation
         {
-            if (this != &gene)
+        public:
+            using StatGeneration_ = StatGeneration<GeneType, num_genes, num_chromosomes, FitnessType>;
+            using StatGenerations_ = StatSuffix<StatGeneration_, suffix_size>;
+            using StatPopulation_ = StatPopulation<GeneType, num_genes, num_chromosomes, suffix_size, FitnessType>;
+
+            StatPopulation(): stat_generations_() {}
+
+            StatPopulation(const StatGenerations_& stat_generations): stat_generations_(stat_generations) {}
+            StatPopulation_& operator=(const StatPopulation_& stat_generations) {stat_generations_ = stat_generations; return *this;}
+            StatPopulation(const StatPopulation_& stat_population): stat_generations_(stat_population.stat_generations_) {}
+            StatPopulation_& operator=(const StatPopulation_& stat_population) 
             {
-                data_ = gene.data_;
+                if (this != &stat_population) {stat_generations_ = stat_population.stat_generations_;}
+                return *this;
             }
-            return *this;
-        }
 
-        template<typename GeneType>
-        typename Gene<GeneType>::Gene_& Gene<GeneType>::operator=(typename Gene<GeneType>::Gene_ &&gene)
-        {
-            if (this != &gene)
+            StatPopulation(StatGenerations_&& stat_generations): stat_generations_(std::move(stat_generations)) {}
+            StatPopulation_& operator=(StatGenerations_&& stat_generations) {stat_generations_ = std::move(stat_generations);}
+            StatPopulation(StatPopulation_&& stat_population): stat_generations_(std::move(stat_population.stat_generations_)) {}
+            StatPopulation_& operator=(StatPopulation_&& stat_population) 
             {
-                data_ = std::move(gene.data_);
+                if (this != &stat_population) {stat_generations_ = std::move(stat_population.stat_generations_);}
+                return *this;
             }
-            return *this;
-        }
-
-        template<typename GeneType>
-        bool Gene<GeneType>::operator==(const typename Gene<GeneType>::Gene_& gene) const
-        {
-            return data_ == gene.data_;
-        }
-
-        template<typename GeneType>
-        bool Gene<GeneType>::operator!=(const typename Gene<GeneType>::Gene_& gene) const
-        {
-            return data_ != gene.data_;
-        }
-
-        template<typename GeneType>
-        GeneType& Gene<GeneType>::get()
-        {
-            return data_;
-        }
-
-        template<typename GeneType>
-        const GeneType& Gene<GeneType>::get() const
-        {
-            return data_;
-        }
-
-        template<typename GeneType>
-        Chromosome<GeneType>::Chromosome(): genes_(1), fitness_() {}
-
-        template<typename GeneType>
-        Chromosome<GeneType>::Chromosome(size_t size): genes_(size), fitness_() {}
-
-        template<typename GeneType>
-        Chromosome<GeneType>::Chromosome(const typename Chromosome<GeneType>::Genes_& genes): genes_(genes), fitness_() {}
-
-        template<typename GeneType>
-        Chromosome<GeneType>::Chromosome(typename Chromosome<GeneType>::Genes_&& genes): genes_(std::move(genes)), fitness_() {}
-
-        template<typename GeneType>
-        Chromosome<GeneType>::Chromosome(const typename Chromosome<GeneType>::Chromosome_& chromosome): genes_(chromosome.genes_), fitness_(chromosome.fitness_) {}
-
-        template<typename GeneType>
-        Chromosome<GeneType>::Chromosome(typename Chromosome<GeneType>::Chromosome_&& chromosome): genes_(std::move(chromosome.genes_)), fitness_(std::move(chromosome.fitness_)) {}
-
-        template<typename GeneType>
-        typename Chromosome<GeneType>::Chromosome_& Chromosome<GeneType>::operator=(const typename Chromosome<GeneType>::Chromosome_& chromosome)
-        {
-            if (this != &chromosome)
-            {
-                genes_ = chromosome.genes_;
-                fitness_ = chromosome.fitness_;
-            }
-            return *this;
-        }
-
-        template<typename GeneType>
-        typename Chromosome<GeneType>::Chromosome_& Chromosome<GeneType>::operator=(typename Chromosome<GeneType>::Chromosome_&& chromosome)
-        {
-            if (this != &chromosome)
-            {
-                genes_ = std::move(chromosome.genes_);
-                fitness_ = std::move(chromosome.fitness_);
-            }
-            return *this;
-        }
-
-        template<typename GeneType>
-        bool Chromosome<GeneType>::operator==(const typename Chromosome<GeneType>::Chromosome_& chromosome) const
-        {
-            if (genes_.size() != chromosome.genes_.size())
-            {
-                // TODO throw ....
-                throw std::exception();
-            }
-            for (size_t i = 0, size = genes_.size(); i < size; ++i)
-            {
-                if (genes_[i] != chromosome.genes_[i])
-                {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        template<typename GeneType>
-        bool Chromosome<GeneType>::operator!=(const typename Chromosome<GeneType>::Chromosome_& chromosome) const
-        {
-            return !(*this == chromosome);
-        }
-
-        template<typename GeneType>
-        typename Chromosome<GeneType>::Genes_& Chromosome<GeneType>::get()
-        {
-            fitness_.reset();
-            return genes_;
-        }
-
-        template<typename GeneType>
-        const typename Chromosome<GeneType>::Genes_& Chromosome<GeneType>::get() const
-        {
-            return genes_;
-        }
-
-        template<typename GeneType>
-        double& Chromosome<GeneType>::fitness()
-        {
-            if (!fitness_.has_value()) {throw std::logic_error("fitness is NULL");}
-            return fitness_.value();
-        }
-
-        template<typename GeneType>
-        const double& Chromosome<GeneType>::fitness() const
-        {
-            if (!fitness_.has_value()) {throw std::logic_error("fitness is NULL");}
-            return fitness_.value();
-        }
-
-        template<typename GeneType>
-        std::optional<double>& Chromosome<GeneType>::optionalFitness()
-        {
-            return fitness_;
-        }
-
-        template<typename GeneType>
-        Generation<GeneType>::Generation(): chromosomes_(1) {}
-
-        template<typename GeneType>
-        Generation<GeneType>::Generation(size_t generation_size, size_t chromosome_size): chromosomes_(generation_size, chromosome_size) {}
-
-        template<typename GeneType>
-        Generation<GeneType>::Generation(const typename Generation<GeneType>::Chromosomes_& chromosomes): chromosomes_(chromosomes) {}
-
-        template<typename GeneType>
-        Generation<GeneType>::Generation(typename Generation<GeneType>::Chromosomes_&& chromosomes): chromosomes_(std::move(chromosomes)) {}
-
-        template<typename GeneType>
-        Generation<GeneType>::Generation(const typename Generation<GeneType>::Generation_& generation): chromosomes_(generation.chromosomes_) {}
-
-        template<typename GeneType>
-        Generation<GeneType>::Generation(typename Generation<GeneType>::Generation_&& generation): chromosomes_(std::move(generation.chromosomes_)) {}
-    
-        template<typename GeneType>
-        typename Generation<GeneType>::Generation_& Generation<GeneType>::operator=(const typename Generation<GeneType>::Generation_& generation)
-        {
-            if (this != &generation)
-            {
-                chromosomes_ = generation.chromosomes_;
-            }
-            return *this;
-        }
-
-        template<typename GeneType>
-        typename Generation<GeneType>::Generation_& Generation<GeneType>::operator=(typename Generation<GeneType>::Generation_&& generation)
-        {
-            if (this != &generation)
-            {
-                chromosomes_ = std::move(generation.chromosomes_);
-            }
-            return *this;
-        }
-
-        template<typename GeneType>
-        bool Generation<GeneType>::operator==(const typename Generation<GeneType>::Generation_& generation) const
-        {
-            if (chromosomes_.size() != generation.chromosomes_.size())
-            {
-                // TODO throw ....
-            }
-            for (size_t i = 0, size = chromosomes_.size(); i < size; ++i)
-            {
-                if (chromosomes_[i] != generation.chromosomes_[i])
-                {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        template<typename GeneType>
-        bool Generation<GeneType>::operator!=(const typename Generation<GeneType>::Generation_& generation) const
-        {
-            return !(*this == generation);
-        }
-
-        template<typename GeneType>
-        typename Generation<GeneType>::Chromosomes_& Generation<GeneType>::get()
-        {
-            return chromosomes_;
-        }
-
-        template<typename GeneType>
-        const typename Generation<GeneType>::Chromosomes_& Generation<GeneType>::get() const
-        {
-            return chromosomes_;
-        }
-
-        template<typename GeneType>
-        Population<GeneType>::Population(): generations_(1) {}
-
-        template<typename GeneType>
-        Population<GeneType>::Population(size_t buffer_size): generations_(buffer_size) {}
-
-        template<typename GeneType>
-        Population<GeneType>::Population(const typename Population<GeneType>::Generations_& generations): generations_(generations) {}
-
-        template<typename GeneType>
-        Population<GeneType>::Population(typename Population<GeneType>::Generations_&& generations): generations_(std::move(generations)) {}
-
-        template<typename GeneType>
-        Population<GeneType>::Population(const typename Population<GeneType>::Population_& population): generations_(population.generations_) {}
-    
-        template<typename GeneType>
-        Population<GeneType>::Population(typename Population<GeneType>::Population_&& population): generations_(std::move(population.generations_)) {}
-
-        template<typename GeneType>
-        typename Population<GeneType>::Population_& Population<GeneType>::operator=(const typename Population<GeneType>::Population_& population)
-        {
-            if (this != &population)
-            {
-                generations_ = population.generations_;
-            }
-            return *this;
-        }
-
-        template<typename GeneType>
-        typename Population<GeneType>::Population_& Population<GeneType>::operator=(typename Population<GeneType>::Population_&& population)
-        {
-            if (this != &population)
-            {
-                generations_ = std::move(population.generations_);
-            }
-            return *this;
-        }
-
-        template<typename GeneType>
-        typename Population<GeneType>::Generations_& Population<GeneType>::get()
-        {
-            return generations_;
-        }
-
-        template<typename GeneType>
-        const typename Population<GeneType>::Generations_& Population<GeneType>::get() const
-        {
-            return generations_;
-        }
-
-        template<typename GeneType>
-        Population<GeneType>& Population<GeneType>::add(const Generation<GeneType>& generation)
-        {
-            generations_.add(generation);
-            return *this;
-        }
-
-        template<typename GeneType>
-        Population<GeneType>& Population<GeneType>::add(Generation<GeneType>&& generation)
-        {
-            generations_.add(generation);
-            return *this;
-        }
+            
+        protected:
+            StatGenerations_ stat_generations_;
+        };
     } // end namespace Types
 } // end namespace GeneticAlgorithm

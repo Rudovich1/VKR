@@ -21,49 +21,54 @@ namespace GeneticAlgorithm
 {
     namespace EvolutionTree
     {
-        template<typename GeneType>
+        using namespace Interfaces;
+
+        template<class GeneType, class FitnessType>
         struct Node
         {
-            static inline std::unordered_set<std::string> ids_;
+            Node(std::string id = ""): id_(std::move(id)) {};
 
-            std::optional<typename Interfaces::fitnessFunction<GeneType>> fitnessFunction_;
-            std::optional<typename Interfaces::selectionFunction<GeneType>> selectionFunction_;
-            std::optional<typename Interfaces::mutationFunction<GeneType>> mutationFunction_;
-            std::optional<typename Interfaces::crossingoverFunction<GeneType>> crossingoverFunction_;
-            std::optional<typename Interfaces::conditionsForStoppingFunction<GeneType>> conditionsForStoppingFunction_;
-            std::optional<typename Interfaces::anyFunction<GeneType>> anyFunction_;
-            std::optional<typename Interfaces::endNode<GeneType>> endNode_;
-            std::optional<typename Interfaces::startNode<GeneType>> startNode_;
-
-            std::optional<typename LogInterfaces::newGenerationLog<GeneType>> newGenerationLog_;
-            std::optional<typename LogInterfaces::startNodeLog<GeneType>> startNodeLog_;
-            std::optional<typename LogInterfaces::endNodeLog<GeneType>> endNodeLog_;
-
-            const std::string id_;
-
-            void cerrInfo_(std::string) const;
-            virtual bool isSetFunctions_() const; 
-
-            Node(std::string id);
-
-            Node& setFitnessFunction(typename Interfaces::fitnessFunction<GeneType>);
-            Node& setSelectionFunction(typename Interfaces::selectionFunction<GeneType>);
-            Node& setMutationFunction(typename Interfaces::mutationFunction<GeneType>);
-            Node& setCrossingoverFunction(typename Interfaces::crossingoverFunction<GeneType>);
-            Node& setConditionsForStoppingFunction( typename Interfaces::conditionsForStoppingFunction<GeneType>);
+            Node& setFitnessFunction(FitnessFunctionWrapper<GeneType, FitnessType>* fun) 
+            {
+                // TODO .....
+                fitnessFunction_ = std::make_shared(fun);
+            }
+            Node& setSelection(typename Interfaces::selectionFunction<GeneType>);
+            Node& setMutation(typename Interfaces::mutationFunction<GeneType>);
+            Node& setCrossingover(typename Interfaces::crossingoverFunction<GeneType>);
+            Node& setConditionsForStopping( typename Interfaces::conditionsForStoppingFunction<GeneType>);
             Node& setAnyFunction(typename Interfaces::anyFunction<GeneType>);
-            Node& setEndNode(typename Interfaces::endNode<GeneType>);
-            Node& setStartNode(typename Interfaces::startNode<GeneType>);
 
             Node& setNewGenerationLog(typename LogInterfaces::newGenerationLog<GeneType>);
             Node& setStartNodeLog(typename LogInterfaces::startNodeLog<GeneType>);
             Node& setEndNodeLog(typename LogInterfaces::endNodeLog<GeneType>);
 
+            Node& setEndNode(typename Interfaces::endNode<GeneType>);
+            Node& setStartNode(typename Interfaces::startNode<GeneType>);
+
             void evolution(Types::Population<GeneType>&) const;
 
-            virtual Types::Population<GeneType> evolution() = 0;
+            virtual Types::Population<GeneType> evolution(bool is_parallel) = 0;
 
-            mutable std::shared_ptr<NodeLog> node_log_;
+        protected:
+            virtual bool isSetFunctions_() const; 
+
+            std::shared_ptr<FitnessFunctionWrapper<GeneType, FitnessType>> fitnessFunction_;
+            std::shared_ptr<SelectionWrapper<GeneType, FitnessType>> selection_;
+            std::shared_ptr<MutationWrapper<GeneType, FitnessType>> mutation_;
+            std::shared_ptr<CrossingoverWrapper<GeneType, FitnessType>> crossingover_;
+            std::shared_ptr<ConditionsForStoppingWrapper<GeneType, FitnessType>> conditionsForStopping_;
+            std::shared_ptr<AnyFunctionWrapper<GeneType, FitnessType>> anyFunction_;
+
+            std::shared_ptr<NewGenerationLogWrapper<GeneType, FitnessFunctionWrapper>> newGenerationLog_;
+            std::shared_ptr<StartNodeLogWrapper<GeneType, FitnessFunctionWrapper>> startNodeLog_;
+            std::shared_ptr<EndNodeLogWrapper<GeneType, FitnessFunctionWrapper>> endNodeLog_;
+
+            std::shared_ptr<EndNodeFunctionWrapper> endNodeFunction_;
+            std::shared_ptr<StartNodeFunctionWrapper> startNodeFunction_;
+
+            const std::string id_;
+            // mutable std::shared_ptr<NodeLog> node_log_;
         };
 
 
@@ -74,7 +79,7 @@ namespace GeneticAlgorithm
             
             UnaryNode(std::string id, std::shared_ptr<Node<GeneType>> node);
 
-            virtual Types::Population<GeneType> evolution() override;
+            virtual Types::Population<GeneType> evolution(bool is_parallel) override;
         };
 
 
@@ -89,7 +94,7 @@ namespace GeneticAlgorithm
 
             K_Node& setPoolingPopulations(typename Interfaces::poolingPopulations<GeneType, num_nodes>);
 
-            virtual Types::Population<GeneType> evolution() override;
+            virtual Types::Population<GeneType> evolution(bool is_parallel) override;
         };
 
 
@@ -103,7 +108,7 @@ namespace GeneticAlgorithm
 
             PopulationNode& setStartPopulationFunction(typename Interfaces::startPopulationFunction<GeneType>);
 
-            virtual Types::Population<GeneType> evolution() override;
+            virtual Types::Population<GeneType> evolution(bool is_parallel) override;
         };
     } 
     // end namespace EvolutionTree
@@ -210,8 +215,7 @@ namespace GeneticAlgorithm
         template<typename GeneType>
         void Node<GeneType>::evolution(Types::Population<GeneType>& population) const
         {
-            PopulationLog population_log;
-            population_log.start();
+            node_log_->population_log_.start();
             GenerationLog generation_log;
 
             if (startNodeLog_.has_value()) {startNodeLog_.value()(population, id_);}
@@ -229,7 +233,7 @@ namespace GeneticAlgorithm
             }
 
             generation_log.end();
-            population_log.add(generation_log);
+            node_log_->population_log_.add(generation_log);
 
             while (!conditionsForStoppingFunction_.value()(population))
             {
@@ -262,14 +266,13 @@ namespace GeneticAlgorithm
                     generation_log.add(chromosome.fitness());
                 }
                 generation_log.end();
-                population_log.add(generation_log);
+                node_log_->population_log_.add(generation_log);
             }
 
             if (endNode_.has_value()) {endNode_.value()();}
             if (endNodeLog_.has_value()) {endNodeLog_.value()(population, id_);}
 
-            population_log.end();
-            node_log_->population_log_ = std::move(population_log);
+            node_log_->population_log_.end();
         }
 
         template<typename GeneType>
@@ -286,12 +289,12 @@ namespace GeneticAlgorithm
         }
 
         template<typename GeneType>
-        Types::Population<GeneType> UnaryNode<GeneType>::evolution()
+        Types::Population<GeneType> UnaryNode<GeneType>::evolution(bool is_parallel)
         {
-            
             Node<GeneType>::node_log_->start();
-            Types::Population<GeneType> population = node_->evolution();
+            Types::Population<GeneType> population = node_->evolution(is_parallel);
             node_.reset();
+            Node<GeneType>::node_log_->evolution_start();
             Node<GeneType>::evolution(population);
             Node<GeneType>::node_log_->end();
             return population;
@@ -323,34 +326,46 @@ namespace GeneticAlgorithm
         }
 
         template<typename GeneType, size_t num_nodes>
-        Types::Population<GeneType> K_Node<GeneType, num_nodes>::evolution()
+        Types::Population<GeneType> K_Node<GeneType, num_nodes>::evolution(bool is_parallel)
         {
             Node<GeneType>::node_log_->start();
             std::array<Types::Population<GeneType>, num_nodes> populations;
-            std::vector<std::thread> treads;
+            if (is_parallel)
+            {
+                std::vector<std::thread> treads;
 
-            std::function evolute_node = 
-            [](Types::Population<GeneType>& population, std::shared_ptr<GeneticAlgorithm::EvolutionTree::Node<GeneType>>& node_ptr)
-            {
-                population = node_ptr->evolution();
-            };
+                std::function evolute_node = 
+                [is_parallel](Types::Population<GeneType>& population, std::shared_ptr<GeneticAlgorithm::EvolutionTree::Node<GeneType>>& node_ptr)
+                {
+                    population = node_ptr->evolution(is_parallel);
+                };
 
-            for (size_t i = 0; i < num_nodes; ++i)
-            {
-                treads.push_back(std::thread(evolute_node, std::ref(populations[i]), std::ref(nodes_[i])));
+                for (size_t i = 0; i < num_nodes; ++i)
+                {
+                    treads.push_back(std::thread(evolute_node, std::ref(populations[i]), std::ref(nodes_[i])));
+                }
+                for (size_t i = 0; i < num_nodes; ++i)
+                {
+                    treads[i].join();
+                }
             }
-            for (size_t i = 0; i < num_nodes; ++i)
+            else
             {
-                treads[i].join();
+                for (size_t i = 0; i < num_nodes; ++i)
+                {
+                    populations[i] = nodes_[i]->evolution(is_parallel);
+                }
             }
-            Types::Population<GeneType> population = poolingPopulations_.value()(populations);
             for (size_t i = 0; i < num_nodes; ++i)
             {
                 nodes_[i].reset();
             }
-            
+
+            Node<GeneType>::node_log_->evolution_start();
+            Types::Population<GeneType> population = poolingPopulations_.value()(populations);
             Node<GeneType>::evolution(population);
             Node<GeneType>::node_log_->end();
+
             return population;
         }
 
@@ -373,9 +388,10 @@ namespace GeneticAlgorithm
         }
 
         template<typename GeneType>
-        Types::Population<GeneType> PopulationNode<GeneType>::evolution()
+        Types::Population<GeneType> PopulationNode<GeneType>::evolution(bool is_parallel)
         {
             Node<GeneType>::node_log_->start();
+            Node<GeneType>::node_log_->evolution_start();
             Types::Population<GeneType> population = startPopulationFunction_.value()();
             Node<GeneType>::evolution(population);
             Node<GeneType>::node_log_->end();

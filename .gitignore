@@ -50,3 +50,6 @@
 *.bkp
 *.zip
 test/
+*.dSYM
+*.DS_Store
+*.sqlite

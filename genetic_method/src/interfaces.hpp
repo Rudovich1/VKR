@@ -2,106 +2,112 @@
 
 #include "types.hpp"
 
-#include <functional>
 #include <array>
-#include <memory>
+#include <vector>
+#include <string>
+
 
 namespace GeneticAlgorithm
 {
     namespace Interfaces
     {
-        template<typename GeneType, typename ... Args>
-        struct FitnessFunctionWrapper
-        {
-            virtual std::function<double(const Types::Chromosome<GeneType>&)> operator()(Args ...) const = 0;
-        };
+        using namespace Types;
 
-        template<typename GeneType, typename ... Args>
-        struct StartPopulationFunctionWrapper
-        {
-            virtual std::function<Types::Population<GeneType>()> operator()(Args ...) const = 0;
-        };
+        template<class ReturnType, class ... Args>
+        struct Wrapper {virtual ReturnType operator()(Args...) const = 0;};
 
-        template<typename GeneType, typename ... Args>
-        struct SelectionFunctionWrapper
-        {
-            virtual std::function<Types::Generation<GeneType>(Types::Generation<GeneType>&)> operator()(Args ...) const = 0;
-        };
 
-        template<typename GeneType, typename ... Args>
-        struct ConditionsForStoppingWrapper
-        {
-            virtual std::function<bool(const Types::Population<GeneType>&)> operator()(Args ...) const = 0;
-        };
 
-        template<typename GeneType, size_t num_populations, typename ... Args>
-        struct PoolingPopulationsWrapper
-        {
-            virtual std::function<Types::Population<GeneType>(
-                std::array<Types::Population<GeneType>, num_populations>&)> operator()(Args ...) const = 0;
-        };
+        template<class GeneType, class FitnessType>
+        struct FitnessFunctionWrapper: public Wrapper<FitnessType, const Chromosome<GeneType, FitnessType>&> {};
 
-        template<typename GeneType, typename ... Args>
-        struct MutationFunctionWrapper
-        {
-            virtual std::function<void(Types::Generation<GeneType>&)> operator()(Args ...) const = 0;
-        };
+        template<class GeneType, class FitnessType>
+        struct SelectionWrapper: public Wrapper<void, Generation<GeneType, FitnessType>&> {};
 
-        template<typename GeneType, typename ... Args>
-        struct CrossingoverFunctionWrapper
-        {
-            virtual std::function<Types::Generation<GeneType>(const Types::Population<GeneType>&)> operator()(Args ...) const = 0;
-        };
+        template<class GeneType, class FitnessType>
+        struct ConditionsForStoppingWrapper: public Wrapper<bool, const Population<GeneType, FitnessType>&> {};
 
-        template<typename GeneType, typename ... Args>
-        struct AnyFunctionWrapper
-        {
-            virtual std::function<void(Types::Population<GeneType>&)> operator()(Args ...) const = 0;
-        };
+        template<class GeneType, class FitnessType>
+        struct MutationWrapper: public Wrapper<void, Generation<GeneType, FitnessType>&> {};
 
-        template<typename GeneType, typename ... Args>
-        struct EndNodeFunctionWrapper
-        {
-            virtual std::function<void()> operator()(Args ...) const = 0;
-        };
+        template<class GeneType, class FitnessType>
+        struct CrossingoverWrapper: public Wrapper<Generation<GeneType, FitnessType>, const Population<GeneType, FitnessType>&> {};
 
-        template<typename GeneType, typename ... Args>
-        struct StartNodeFunctionWrapper
-        {
-            virtual std::function<void()> operator()(Args ...) const = 0;
-        };
-        
-        
-        template<typename GeneType>
-        using fitnessFunction = std::function<double(const Types::Chromosome<GeneType>&)>;
+        template<class GeneType, class FitnessType>
+        struct AnyFunctionWrapper: public Wrapper<void, Population<GeneType, FitnessType>&> {};
 
-        template<typename GeneType>
-        using startPopulationFunction = std::function<Types::Population<GeneType>()>;
 
-        template<typename GeneType>
-        using selectionFunction = std::function<Types::Generation<GeneType>(Types::Generation<GeneType>&)>;
+        template<class GeneType, class FitnessType>
+        struct StartPopulationWrapper: public Wrapper<Population<GeneType, FitnessType>> {};
 
-        template<typename GeneType, size_t num_populations>
-        using poolingPopulations = std::function<Types::Population<GeneType>(
-            std::array<Types::Population<GeneType>, num_populations>&)>;
 
-        template<typename GeneType>
-        using conditionsForStoppingFunction = std::function<bool(const Types::Population<GeneType>&)>;
+        template<class GeneType, class FitnessType>
+        struct PoolingPopulationsWrapper: 
+            public Wrapper<Population<GeneType, FitnessType>, std::vector<Population<GeneType, FitnessType>>&> {};
 
-        template<typename GeneType>
-        using mutationFunction = std::function<void(Types::Generation<GeneType>&)>;
 
-        template<typename GeneType>
-        using crossingoverFunction = std::function<Types::Generation<GeneType>(const Types::Population<GeneType>&)>;
+        template<class GeneType, class FitnessType>
+        struct NewGenerationLogWrapper: public Wrapper<void, const Generation<GeneType, FitnessType>&, const std::string&> {};
 
-        template<typename GeneType>
-        using anyFunction = std::function<void(Types::Population<GeneType>&)>;
+        template<class GeneType, class FitnessType>
+        struct StartNodeLogWrapper: public Wrapper<void, const Population<GeneType, FitnessType>&, const std::string&> {};
 
-        template<typename GeneType>
-        using endNode = std::function<void()>;
+        template<class GeneType, class FitnessType>
+        struct EndNodeLogWrapper: public Wrapper<void, const Population<GeneType, FitnessType>&, const std::string&> {};
 
-        template<typename GeneType>
-        using startNode = std::function<void()>;
+
+
+        template<class GeneType, class FitnessType, size_t num_genes>
+        struct StatFitnessFunctionWrapper: public Wrapper<FitnessType, const StatChromosome<GeneType, FitnessType, num_genes>&> {};
+
+        template<class GeneType, class FitnessType, size_t num_genes, size_t num_chromosomes>
+        struct StatSelectionWrapper: public Wrapper<void, StatGeneration<GeneType, FitnessType, num_genes, num_chromosomes>&> {};
+
+        template<class GeneType, class FitnessType, size_t num_genes, size_t num_chromosomes, size_t suffix_size>
+        struct StatConditionsForStoppingWrapper: 
+            public Wrapper<bool, const StatPopulation<GeneType, FitnessType, num_genes, num_chromosomes, suffix_size>&> {};
+
+        template<class GeneType, class FitnessType, size_t num_genes, size_t num_chromosomes>
+        struct StatMutationWrapper: public Wrapper<void, StatGeneration<GeneType, FitnessType, num_genes, num_chromosomes>&> {};
+
+        template<class GeneType, class FitnessType, size_t num_genes, size_t num_chromosomes, size_t suffix_size>
+        struct StatCrossingoverWrapper: 
+            public Wrapper<StatGeneration<GeneType, FitnessType, num_genes, num_chromosomes>, 
+                const StatPopulation<GeneType, FitnessType, num_genes, num_chromosomes, suffix_size>&> {};
+
+        template<class GeneType, class FitnessType, size_t num_genes, size_t num_chromosomes, size_t suffix_size>
+        struct StatAnyFunctionWrapper: 
+            public Wrapper<void, StatPopulation<GeneType, FitnessType, num_genes, num_chromosomes, suffix_size>&> {};
+
+
+        template<class GeneType, class FitnessType, size_t num_genes, size_t num_chromosomes, size_t suffix_size>
+        struct StatStartPopulationWrapper: 
+            public Wrapper<StatPopulation<GeneType, FitnessType, num_genes, num_chromosomes, suffix_size>> {};
+
+
+        template<class GeneType, class FitnessType, size_t num_genes, size_t num_chromosomes, size_t suffix_size, size_t num_populations>
+        struct PoolingPopulationsWrapper: 
+            public Wrapper<StatPopulation<GeneType, FitnessType, num_genes, num_chromosomes, suffix_size>, 
+                std::array<StatPopulation<GeneType, FitnessType, num_genes, num_chromosomes, suffix_size>, num_populations>&> {};
+
+
+        template<class GeneType, class FitnessType, size_t num_genes, size_t num_chromosomes>
+        struct StatNewGenerationLogWrapper: 
+            public Wrapper<void, const StatGeneration<GeneType, FitnessType, num_genes, num_chromosomes>&, const std::string&> {};
+
+        template<class GeneType, class FitnessType, size_t num_genes, size_t num_chromosomes, size_t suffix_size>
+        struct StatStartNodeLogWrapper: 
+            public Wrapper<void, const StatPopulation<GeneType, FitnessType, num_genes, num_chromosomes, suffix_size>&, const std::string&> {};
+
+        template<class GeneType, class FitnessType, size_t num_genes, size_t num_chromosomes, size_t suffix_size>
+        struct StatEndNodeLogWrapper: 
+            public Wrapper<void, const StatPopulation<GeneType, FitnessType, num_genes, num_chromosomes, suffix_size>&, const std::string&> {};
+
+
+
+        struct EndNodeFunctionWrapper: public Wrapper<void> {};
+        struct StartNodeFunctionWrapper: public Wrapper<void> {};
+
 
     } // end namespace Interfaces
 } // end namespace GeneticAlgorithm
