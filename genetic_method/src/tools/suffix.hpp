@@ -73,10 +73,10 @@ namespace GeneticAlgorithm
             return suffix_data_[(capacity_ + start_ + shift - 1 - ind) % capacity_];
         }
 
-        void push(const Type& item)
+        void push(Type item)
         {
             size_t shift = std::min(capacity_, size_);
-            suffix_data_[(start_ + shift) % capacity_] = item;
+            suffix_data_[(start_ + shift) % capacity_] = std::move(item);
             if (shift == capacity_) {(++start_) %= capacity_;}
             ++size_;
         }
@@ -153,10 +153,10 @@ namespace GeneticAlgorithm
             return stat_suffix_data_[(capacity_ + start_ + shift - 1 - ind) % capacity_];
         }
 
-        void push_back(const Type& item)
+        void push(Type item)
         {
             size_t shift = std::min(capacity_, size_);
-            stat_suffix_data_[(start_ + shift) % capacity_] = item;
+            stat_suffix_data_[(start_ + shift) % capacity_] = std::move(item);
             if (shift == capacity_) {(++start_) %= capacity_;}
             ++size_;
         }

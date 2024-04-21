@@ -1,5 +1,6 @@
 #include "../../knapsack-problem/knapsack_problem.hpp"
-#include "../../genetic_method/src/genetic_algorithm.hpp"
+#include "../../genetic_method/src/evolution_tree.hpp"
+#include "evolution_log.hpp"
 
 #include <chrono>
 #include <iostream>
@@ -14,256 +15,323 @@ using namespace Types;
 using namespace EvolutionTree;
 
 
-struct FitnessFunction: public FitnessFunctionWrapper<bool, const KnapsackProblem&, double, double>
+struct Data
 {
-    virtual std::function<double(const Chromosome<bool>&)> operator()(const KnapsackProblem& knapsack_problem, double min_w, double max_v) const override
+    Data(KnapsackProblem kp): kp(std::move(kp)) {}
+
+    KnapsackProblem kp;
+    long long min_w, max_v;
+    size_t generation_size, num_new_pairs;
+    double mutation_coef;
+    size_t max_times;
+};
+
+
+struct FitnessFunction: public FitnessFunctionWrapper<bool, long long>
+{
+    FitnessFunction(Data& data): data_(data) {}
+
+    long long operator()(const Chromosome<bool, long long>& ch) override
     {
-        return [&knapsack_problem, min_w, max_v](const Chromosome<bool>& chromosome)
+        double value = 0., weight = 0.;
+        for (size_t i = 0; i < data_.kp.size_; ++i)
         {
-            double value = 0., weight = 0.;
-            for (size_t i = 0; i < knapsack_problem.size_; ++i)
+            if (ch.cget()[i])
             {
-                if (chromosome.get()[i].get())
+                value += data_.kp.items_[i].value_;
+                weight += data_.kp.items_[i].weight_;
+            }
+        }
+        if (weight > data_.kp.knapsack_capacity_)
+        {
+            value = 0;
+        }
+        return value;
+    }
+
+    Data& data_;
+};
+
+
+struct StartPopulation_Zeros: public StartPopulationWrapper<bool, long long>
+{
+    StartPopulation_Zeros(Data& data): data_(data) {}
+
+    Population<bool, long long> operator()() override
+    {
+        Generation<bool, long long> generation(data_.generation_size, Chromosome<bool, long long>(data_.kp.size_));
+        Population<bool, long long> population(2);
+        population.get().push(std::move(generation));
+        return population;
+    }
+
+    Data& data_;
+};
+
+
+struct Mutation: public MutationWrapper<bool, long long>
+{
+    Mutation(Data& data): data_(data) {}
+
+    void operator()(Generation<bool, long long>& generation) override
+    {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_real_distribution<double> urd(0., 1.);
+        for (size_t i = generation.get().size() - data_.num_new_pairs; i < generation.get().size(); ++i)
+        {
+            for (size_t j = 0; j < generation.get()[i].get().size(); ++j)
+            {
+                if (urd(gen) < data_.mutation_coef)
                 {
-                    value += knapsack_problem.items_[i].value_;
-                    weight += knapsack_problem.items_[i].weight_;
+                    generation.get()[i].get()[j] = !generation.get()[i].get()[j];
                 }
             }
-            if (weight > knapsack_problem.knapsack_capacity_)
+        }
+    }
+
+    Data& data_;
+};
+
+
+struct Crossingover: public CrossingoverWrapper<bool, long long>
+{
+    Crossingover(Data& data): data_(data) {}
+
+    Generation<bool, long long> operator()(const Population<bool, long long>& population) override
+    {
+        const Generation<bool, long long>& last_generation = population.get()[0];
+        Generation<bool, long long> generation;
+        size_t generation_size = data_.generation_size;
+        size_t chromosome_size = data_.kp.size_;
+        for (size_t j = 0; j < data_.num_new_pairs / generation_size; ++j)
+        {
+            for (size_t i = 0; i < generation_size; ++i)
             {
-                value = 0;
+                generation.get().push_back(last_generation.get()[i]);
             }
-            return value;
-        };
+        }
+        return generation;
     }
+
+    Data& data_;
 };
 
 
-struct StartPopulation_Zeros: public StartPopulationFunctionWrapper<bool, const KnapsackProblem&, size_t>
+struct Selection: public SelectionWrapper<bool, long long>
 {
-    virtual std::function<Population<bool>()> operator()(const KnapsackProblem& knapsack_problem, size_t num_chromosomes) const override
+    Selection(Data& data): data_(data) {}
+
+    void operator()(Generation<bool, long long>& generation) override
     {
-        return [&knapsack_problem, num_chromosomes]()
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::sort(generation.get().begin(), generation.get().end(), [](const Chromosome<bool, long long>& ch1, const Chromosome<bool, long long>& ch2)
         {
-            GeneticAlgorithm::Types::Generation<bool>::Chromosomes_ chromosomes(num_chromosomes, Chromosome<bool>(knapsack_problem.size_));
-            Population<bool> population(2);
-            population.add(GeneticAlgorithm::Types::Generation<bool>(std::move(chromosomes)));
-            return population;
-        };
+            return ch1.getFitness() > ch2.getFitness();
+        });
+        std::vector<size_t> probabilities(generation.get().size());
+        probabilities[0] = generation.get()[0].getFitness().value() + 1ULL;
+        for (size_t i = 1; i < generation.get().size(); ++i)
+        {
+            probabilities[i] = probabilities[i - 1] + generation.get()[i].getFitness().value() + 1ULL;
+        }
+        std::uniform_int_distribution<size_t> uid(0, probabilities.back());
+        Generation<bool, long long> new_generation(data_.generation_size);
+        for (size_t i = 0; i < data_.generation_size*0.1; ++i)
+        {
+            new_generation.get()[i] = generation.get()[i];
+        }
+        for (size_t i = data_.generation_size*0.1; i < data_.generation_size*0.9; ++i)
+        {
+            size_t ch_ind = std::lower_bound(probabilities.begin(), probabilities.end(), uid(gen)) - probabilities.begin();
+            new_generation.get()[i] = generation.get()[ch_ind];
+        }
+        for (size_t i = data_.generation_size*0.9; i < data_.generation_size; ++i)
+        {
+            new_generation.get()[i] = Chromosome<bool, long long>(data_.kp.size_, false);
+            new_generation.get()[i].getFitness() = 0;
+        }
+        std::swap(generation, new_generation);
     }
+
+    Data& data_;
 };
 
 
-struct MutationFunction: public MutationFunctionWrapper<bool, double, size_t>
+struct ConditionsForStoppingImprovement: public ConditionsForStoppingWrapper<bool, long long>
 {
-    virtual std::function<void(Generation<bool>&)> operator()(double mutation_coef, size_t num_new_pairs) const override
+    ConditionsForStoppingImprovement(Data& data): data_(data){}
+
+    bool operator()(const Population<bool, long long>& population) override
     {
-        return [mutation_coef, num_new_pairs](Generation<bool>& generation)
+        cur_times_ += 1;
+        for (const auto& chromosome: population.get()[0].get())
         {
-            std::random_device rd;
-            std::mt19937 gen(rd());
-            std::uniform_real_distribution<double> urd(0., 1.);
-            for (size_t i = generation.get().size() - num_new_pairs; i < generation.get().size(); ++i)
+            if (chromosome.getFitness() > best_res_)
             {
-                for (size_t j = 0; j < generation.get()[i].get().size(); ++j)
-                {
-                    auto& gene = generation.get()[i].get()[j];
-                    if (urd(gen) < mutation_coef)
-                    {
-                        gene.get() = !gene.get();
-                    }
-                }
-                generation.get()[i].optionalFitness().reset();
+                cur_times_ = 0;
+                best_res_ = chromosome.getFitness().value();
             }
-        };
+        }
+        if (cur_times_ == data_.max_times)
+        {
+            return true;
+        }
+        return false;
     }
+
+    Data& data_;
+    size_t cur_times_ = 0;
+    long long best_res_ = 0;
 };
 
 
-struct CrossingoverFunction: public CrossingoverFunctionWrapper<bool, size_t>
+struct PoolingPopulations: public PoolingPopulationsWrapper<bool, long long>
 {
-    virtual std::function<Generation<bool>(const Population<bool>&)> operator()(size_t num_new_pairs) const override
-    {
-        return [num_new_pairs](const Population<bool>& population)
-        {
-            const Generation<bool>& last_generation = population.get().back();
-            Generation<bool>::Chromosomes_ chromosomes;
-            size_t generation_size = last_generation.get().size();
-            size_t chromosome_size = last_generation.get()[0].get().size();
-            for (size_t j = 0; j < num_new_pairs / generation_size; ++j)
-            {
-                for (size_t i = 0; i < generation_size; ++i)
-                {
-                    chromosomes.push_back(last_generation.get()[i]);
-                }
-            }
-            return Generation<bool>(std::move(chromosomes));
-        };
-    }
-};
+    PoolingPopulations(Data& data): data_(data) {}
 
-
-struct SelectionFunction: public SelectionFunctionWrapper<bool, size_t>
-{
-    virtual std::function<Generation<bool>(Generation<bool>&)> operator()(size_t num_chromosomes) const override
+    Population<bool, long long> operator()(std::vector<Population<bool, long long>>& populations) override
     {
-        return [num_chromosomes](Generation<bool>& generation)
+        Generation<bool, long long> generation;
+        for (size_t i = 0; i < populations.size() - 1; ++i)
         {
-            std::random_device rd;
-            std::mt19937 gen(rd());
-            std::sort(generation.get().begin(), generation.get().end(), [](const Chromosome<bool>& ch1, const Chromosome<bool>& ch2)
+            Generation<bool, long long> tmp = populations[i].get()[0].get();
+            std::sort(tmp.get().begin(), tmp.get().end(), [](const Chromosome<bool, long long>& a, const Chromosome<bool, long long>& b)
             {
-                return ch1.fitness() > ch2.fitness();
+                return a.getFitness().value() > b.getFitness().value();
             });
-            std::vector<size_t> probabilities(generation.get().size());
-            probabilities[0] = generation.get()[0].fitness() + 1ULL;
-            for (size_t i = 1; i < generation.get().size(); ++i)
+            for (size_t j = 0; j < data_.generation_size / populations.size(); ++j)
             {
-                probabilities[i] = probabilities[i - 1] + generation.get()[i].fitness() + 1ULL;
+                generation.get().push_back(std::move(tmp.get()[j]));
             }
-            std::uniform_int_distribution<size_t> uid(0, probabilities.back());
-            Generation<bool>::Chromosomes_ chromosomes(num_chromosomes);
-            for (size_t i = 0; i < num_chromosomes*0.1; ++i)
-            {
-                chromosomes[i] = generation.get()[i];
-            }
-            for (size_t i = num_chromosomes*0.1; i < num_chromosomes*0.9; ++i)
-            {
-                size_t ch_ind = std::lower_bound(probabilities.begin(), probabilities.end(), uid(gen)) - probabilities.begin();
-                chromosomes[i] = generation.get()[ch_ind];
-            }
-            for (size_t i = num_chromosomes*0.9; i < num_chromosomes; ++i)
-            {
-                chromosomes[i] = Chromosome<bool>(generation.get()[0].get().size());
-                chromosomes[i].optionalFitness() = 0.;
-            }
-            return Generation<bool>(std::move(chromosomes));
-        };
-    }
-};
-
-
-struct ConditionsForStoppingImprovement: public ConditionsForStoppingWrapper<
-    bool, size_t, std::shared_ptr<size_t>, std::shared_ptr<double>>
-{
-    virtual std::function<bool(const Population<bool>&)> operator()(
-        size_t max_times, std::shared_ptr<size_t> cur_times, std::shared_ptr<double> best_res) const override
-    {
-        return [max_times, cur_times, best_res](const Population<bool>& population)
+        }
+        Generation<bool, long long> tmp = populations.back().get()[0].get();
+        std::sort(tmp.get().begin(), tmp.get().end(), [](const Chromosome<bool, long long>& a, const Chromosome<bool, long long>& b)
         {
-            *cur_times += 1;
-            for (const auto& chromosome: population.get().back().get())
-            {
-                if (chromosome.fitness() > *best_res)
-                {
-                    *cur_times = 0;
-                    *best_res = chromosome.fitness();
-                }
-            }
-            if (*cur_times == max_times)
-            {
-                return true;
-            }
-            return false;
-        };
-    }
-};
-
-template<size_t num_populations>
-struct PoolingFunction: public PoolingPopulationsWrapper<bool, num_populations, size_t>
-{
-    virtual std::function<Population<bool>(std::array<Population<bool>, num_populations>&)> operator()(size_t num_chromosomes) const override
-    {
-        return [num_chromosomes](const std::array<Population<bool>, num_populations>& populations)
+            return a.getFitness().value() > b.getFitness().value();
+        });
+        for (size_t j = 0; j < data_.generation_size / populations.size() + (data_.generation_size % populations.size()); ++j)
         {
-            Generation<bool>::Chromosomes_ generation;
-            for (size_t i = 0; i < populations.size() - 1; ++i)
-            {
-                Generation<bool>::Chromosomes_ tmp = populations[i].get().back().get();
-                std::sort(tmp.begin(), tmp.end(), [](const Chromosome<bool>& a, const Chromosome<bool>& b)
-                {
-                    return a.fitness() > b.fitness();
-                });
-                for (size_t j = 0; j < num_chromosomes / populations.size(); ++j)
-                {
-                    generation.push_back(std::move(tmp[j]));
-                }
-            }
-            Generation<bool>::Chromosomes_ tmp = populations.back().get().back().get();
-            std::sort(tmp.begin(), tmp.end(), [](const Chromosome<bool>& a, const Chromosome<bool>& b)
-            {
-                return a.fitness() > b.fitness();
-            });
-            for (size_t j = 0; j < num_chromosomes / populations.size() + (num_chromosomes % populations.size()); ++j)
-            {
-                generation.push_back(std::move(tmp[j]));
-            }
-            Population<bool> res(2);
-            res.add(std::move(generation));
-            return res;
-        };
+            generation.get().push_back(std::move(tmp.get()[j]));
+        }
+        Population<bool, long long> res(2);
+        res.get().push(std::move(generation));
+        return res;
     }
+
+    Data& data_;
 };
 
-Node<bool>& setFuns(
-    Node<bool>& node,
-    const KnapsackProblem& kp,
-    size_t num_chromosomes,
-    double mutation_coef,
-    size_t num_new_pairs,
-    size_t max_not_improvement)
+
+struct StartEvolutionLog: public StartEvolutionLogWrapper<bool, long long>
 {
-    double max_v = LLONG_MIN, min_w = LLONG_MAX;
-    for (const auto& item: kp.items_)
+    StartEvolutionLog(NodeLog& node_log): node_log_(node_log) {}
+
+    void operator()(const Population<bool, long long>& generation, const std::string& id) override
     {
-        max_v = std::max(max_v, (double)item.value_);
-        min_w = std::min(min_w, (double)item.weight_);
+        node_log_.evolution_start();
     }
-    auto cur_times = std::make_shared<size_t>(0);
-    auto best_res = std::make_shared<double>(0.);
-    node.setFitnessFunction(FitnessFunction()(kp, min_w, max_v)).
-        setMutationFunction(MutationFunction()(mutation_coef, num_new_pairs)).
-        setCrossingoverFunction(CrossingoverFunction()(num_new_pairs)).
-        setSelectionFunction(SelectionFunction()(num_chromosomes)).
-        setConditionsForStoppingFunction(ConditionsForStoppingImprovement()(max_not_improvement, cur_times, best_res));
+
+    NodeLog& node_log_;
+};
+
+struct EndEvolutionLog: public EndEvolutionLogWrapper<bool, long long>
+{
+    EndEvolutionLog(NodeLog& node_log): node_log_(node_log) {}
+
+    void operator()(const Population<bool, long long>& generation, const std::string& id) override
+    {
+        node_log_.evolution_end();
+    }
+
+    NodeLog& node_log_;
+};
+
+struct NewGenerationLog: public NewGenerationLogWrapper<bool, long long>
+{
+    NewGenerationLog(NodeLog& node_log): node_log_(node_log) {}
+
+    void operator()(const Generation<bool, long long>& generation, const std::string& id) override
+    {
+        GenerationLog generation_log;
+        generation_log.start();
+        for (const auto& chromosome: generation.get())
+        {
+            generation_log.add(chromosome.getFitness().value());
+        }
+        generation_log.end();
+        node_log_.population_log_.add(std::move(generation_log));
+    }
+
+    NodeLog& node_log_;
+};
+
+
+struct StartNodeLog: public StartNodeLogWrapper
+{
+    StartNodeLog(NodeLog& node_log): node_log_(node_log) {}
+
+    void operator()(const std::string& id) override
+    {
+        node_log_.start();
+    }
+
+    NodeLog& node_log_;
+};
+
+struct EndNodeLog: public EndNodeLogWrapper
+{
+    EndNodeLog(NodeLog& node_log): node_log_(node_log) {}
+
+    void operator()(const std::string& id) override
+    {
+        node_log_.end();
+    }
+
+    NodeLog& node_log_;
+};
+
+
+Node<bool, long long>& setFuns(Node<bool, long long>& node, Data& data)
+{
+    node.setFitnessFunction(std::make_shared<FitnessFunction>(FitnessFunction(data))).
+        setMutation(std::make_shared<Mutation>(Mutation(data))).
+        setCrossingover(std::make_shared<Crossingover>(Crossingover(data))).
+        setSelection(std::make_shared<Selection>(Selection(data))).
+        setConditionsForStopping(std::make_shared<ConditionsForStoppingImprovement>(ConditionsForStoppingImprovement(data)));
     return node;
 }
 
-PopulationNode<bool>& setFuns(
-    PopulationNode<bool>& node,
-    const KnapsackProblem& kp,
-    size_t num_chromosomes,
-    double mutation_coef,
-    size_t num_new_pairs,
-    size_t max_not_improvement)
+Node<bool, long long>& setLogFuns(Node<bool, long long>& node, NodeLog& node_log)
 {
-    setFuns((GeneticAlgorithm::EvolutionTree::Node<bool>&)node, kp, num_chromosomes, mutation_coef, num_new_pairs, max_not_improvement);
-    node.setStartPopulationFunction(StartPopulation_Zeros()(kp, num_chromosomes));
+    node.setStartEvolutionLog(std::make_shared<StartEvolutionLog>(StartEvolutionLog(node_log))).
+        setNewGenerationLog(std::make_shared<NewGenerationLog>(NewGenerationLog(node_log))).
+        setEndEvolutionLog(std::make_shared<EndEvolutionLog>(EndEvolutionLog(node_log))).
+        setStartNodeLog(std::make_shared<StartNodeLog>(StartNodeLog(node_log))).
+        setEndNodeLog(std::make_shared<EndNodeLog>(EndNodeLog(node_log)));
     return node;
 }
 
-UnaryNode<bool>& setFuns(
-    UnaryNode<bool>& node,
-    const KnapsackProblem& kp,
-    size_t num_chromosomes,
-    double mutation_coef,
-    size_t num_new_pairs,
-    size_t max_not_improvement)
+
+PopulationNode<bool, long long>& setFuns(PopulationNode<bool, long long>& node, Data& data)
 {
-    setFuns((GeneticAlgorithm::EvolutionTree::Node<bool>&)node, kp, num_chromosomes, mutation_coef, num_new_pairs, max_not_improvement);
+    setFuns((Node<bool, long long>&)node, data);
+    node.setStartPopulation(std::make_shared<StartPopulation_Zeros>(StartPopulation_Zeros(data)));
     return node;
 }
 
-template<size_t num_populations>
-K_Node<bool, num_populations>& setFuns(
-    K_Node<bool, num_populations>& node,
-    const KnapsackProblem& kp,
-    size_t num_chromosomes,
-    double mutation_coef,
-    size_t num_new_pairs,
-    size_t max_not_improvement)
+
+UnaryNode<bool, long long>& setFuns(UnaryNode<bool, long long>& node, Data& data)
 {
-    setFuns((GeneticAlgorithm::EvolutionTree::Node<bool>&)node, kp, num_chromosomes, mutation_coef, num_new_pairs, max_not_improvement);
-    node.setPoolingPopulations(PoolingFunction<num_populations>()(num_chromosomes));
+    setFuns((Node<bool, long long>&)node, data);
+    return node;
+}
+
+
+K_Node<bool, long long>& setFuns(K_Node<bool, long long>& node, Data& data)
+{
+    setFuns((Node<bool, long long>&)node, data);
+    node.setPoolingPopulations(std::make_shared<PoolingPopulations>(PoolingPopulations(data)));
     return node;
 }

@@ -21,15 +21,15 @@ namespace GeneticAlgorithm
             using Chromosome_ = Chromosome<GeneType, FitnessType>;
 
             Chromosome(): genes_() {}
-            Chromosome(const Genes_::allocator_type& __a): genes_(__a) {}
-            Chromosome(Genes_::size_type __n): genes_(__n) {}
-            Chromosome(Genes_::size_type __n, const Genes_::allocator_type& __a): genes_(__n, __a) {}
-            Chromosome(Genes_::size_type __n, const GeneType& __x): genes_(__n, __x) {}
-            Chromosome(Genes_::size_type __n, const GeneType& __x, const Genes_::allocator_type& __a): genes_(__n, __x, __a) {}
+            Chromosome(const typename Genes_::allocator_type& __a): genes_(__a) {}
+            Chromosome(typename Genes_::size_type __n): genes_(__n) {}
+            Chromosome(typename Genes_::size_type __n, const typename Genes_::allocator_type& __a): genes_(__n, __a) {}
+            Chromosome(typename Genes_::size_type __n, const GeneType& __x): genes_(__n, __x) {}
+            Chromosome(typename Genes_::size_type __n, const GeneType& __x, const typename Genes_::allocator_type& __a): genes_(__n, __x, __a) {}
             template<class _Iterator> 
             Chromosome(_Iterator __first, _Iterator __last): genes_(__first, __last) {}
             template<class _Iterator> 
-            Chromosome(_Iterator __first, _Iterator __last, const Genes_::allocator_type& __a): genes_(__first, __last, __a) {}
+            Chromosome(_Iterator __first, _Iterator __last, const typename Genes_::allocator_type& __a): genes_(__first, __last, __a) {}
 
             Chromosome(const Genes_& genes): genes_(genes) {}
             Chromosome_& operator=(const Genes_& genes) 
@@ -50,7 +50,7 @@ namespace GeneticAlgorithm
             }
 
             Chromosome(std::initializer_list<GeneType> __il): genes_(__il) {}
-            Chromosome(std::initializer_list<GeneType> __il, const Genes_::allocator_type& __a): genes_(__il, __a) {}
+            Chromosome(std::initializer_list<GeneType> __il, const typename Genes_::allocator_type& __a): genes_(__il, __a) {}
             Chromosome_& operator=(std::initializer_list<GeneType> __il) 
             {
                 genes_ = __il; 
@@ -93,7 +93,7 @@ namespace GeneticAlgorithm
         {
         public:
             using Genes_ = std::array<GeneType, num_genes>;
-            using StatChromosome_ = StatChromosome<GeneType, num_genes, FitnessType>;
+            using StatChromosome_ = StatChromosome<GeneType, FitnessType, num_genes>;
 
             StatChromosome(): genes_({}) {}
             
@@ -162,15 +162,15 @@ namespace GeneticAlgorithm
             using Generation_ = Generation<GeneType, FitnessType>;
 
             Generation(): chromosomes_() {}
-            Generation(const Chromosomes_::allocator_type& __a): chromosomes_(__a) {}
-            Generation(Chromosomes_::size_type __n): chromosomes_(__n) {}
-            Generation(Chromosomes_::size_type __n, const Chromosomes_::allocator_type& __a): chromosomes_(__n, __a) {}
-            Generation(Chromosomes_::size_type __n, const Chromosome_& __x): chromosomes_(__n, __x) {}
-            Generation(Chromosomes_::size_type __n, const Chromosome_& __x, const Chromosomes_::allocator_type& __a): chromosomes_(__n, __x, __a) {}
+            Generation(const typename Chromosomes_::allocator_type& __a): chromosomes_(__a) {}
+            Generation(typename Chromosomes_::size_type __n): chromosomes_(__n) {}
+            Generation(typename Chromosomes_::size_type __n, const typename Chromosomes_::allocator_type& __a): chromosomes_(__n, __a) {}
+            Generation(typename Chromosomes_::size_type __n, const Chromosome_& __x): chromosomes_(__n, __x) {}
+            Generation(typename Chromosomes_::size_type __n, const Chromosome_& __x, const typename Chromosomes_::allocator_type& __a): chromosomes_(__n, __x, __a) {}
             template<class _Iterator> 
             Generation(_Iterator __first, _Iterator __last): chromosomes_(__first, __last) {}
             template<class _Iterator> 
-            Generation(_Iterator __first, _Iterator __last, const Chromosomes_::allocator_type& __a): chromosomes_(__first, __last, __a) {}
+            Generation(_Iterator __first, _Iterator __last, const typename Chromosomes_::allocator_type& __a): chromosomes_(__first, __last, __a) {}
 
             Generation(const Chromosomes_& chromosomes): chromosomes_(chromosomes) {}
             Generation_& operator=(const Chromosomes_& chromosomes) {chromosomes_ = chromosomes; return *this;}
@@ -182,7 +182,7 @@ namespace GeneticAlgorithm
             }
 
             Generation(std::initializer_list<Chromosome_> __il): chromosomes_(__il) {}
-            Generation(std::initializer_list<Chromosome_> __il, const Chromosomes_::allocator_type& __a): chromosomes_(__il, __a) {}
+            Generation(std::initializer_list<Chromosome_> __il, const typename Chromosomes_::allocator_type& __a): chromosomes_(__il, __a) {}
             Generation_& operator=(std::initializer_list<Chromosome_> __il) {chromosomes_ = __il; return *this;}
             
             Generation(Chromosomes_&& chromosomes): chromosomes_(std::move(chromosomes)) {}
@@ -205,11 +205,11 @@ namespace GeneticAlgorithm
         class StatGeneration
         {
         public:
-            using StatChromosome_ = StatChromosome<GeneType, num_genes, FitnessType>;
+            using StatChromosome_ = StatChromosome<GeneType, FitnessType, num_genes>;
             using StatChromosomes_ = std::array<StatChromosome_, num_chromosomes>;
-            using StatGeneration_ = StatGeneration<GeneType, num_genes, num_chromosomes, FitnessType>;
+            using StatGeneration_ = StatGeneration<GeneType, FitnessType, num_genes, num_chromosomes>;
 
-            StatGeneration(): ({}) {}
+            StatGeneration() = default;
             
             StatGeneration(const StatChromosomes_& stat_chromosomes): stat_chromosomes_(stat_chromosomes) {}
             StatGeneration_& operator=(const StatChromosomes_& stat_chromosomes) {stat_chromosomes_ = stat_chromosomes; return *this;}
@@ -279,14 +279,14 @@ namespace GeneticAlgorithm
         class StatPopulation
         {
         public:
-            using StatGeneration_ = StatGeneration<GeneType, num_genes, num_chromosomes, FitnessType>;
+            using StatGeneration_ = StatGeneration<GeneType, FitnessType, num_genes, num_chromosomes>;
             using StatGenerations_ = StatSuffix<StatGeneration_, suffix_size>;
-            using StatPopulation_ = StatPopulation<GeneType, num_genes, num_chromosomes, suffix_size, FitnessType>;
+            using StatPopulation_ = StatPopulation<GeneType, FitnessType, num_genes, num_chromosomes, suffix_size>;
 
             StatPopulation(): stat_generations_() {}
 
             StatPopulation(const StatGenerations_& stat_generations): stat_generations_(stat_generations) {}
-            StatPopulation_& operator=(const StatPopulation_& stat_generations) {stat_generations_ = stat_generations; return *this;}
+            StatPopulation_& operator=(const StatGenerations_& stat_generations) {stat_generations_ = stat_generations; return *this;}
             StatPopulation(const StatPopulation_& stat_population): stat_generations_(stat_population.stat_generations_) {}
             StatPopulation_& operator=(const StatPopulation_& stat_population) 
             {

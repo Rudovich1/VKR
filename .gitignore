@@ -53,3 +53,5 @@ test/
 *.dSYM
 *.DS_Store
 *.sqlite
+
+*main

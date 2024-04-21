@@ -9,6 +9,7 @@
 #include <thread>
 #include <iomanip>
 #include <exception>
+#include <deque>
 
 
 using namespace GeneticAlgorithm;
@@ -115,12 +116,18 @@ struct NodeLog: public TimeLog
     virtual void evolution_start()
     {
         status_ = NodeStatus::IN_WORK;
+        population_log_.start();
+    }
+
+    virtual void evolution_end()
+    {
+        status_ = NodeStatus::DONE;
+        population_log_.end();
     }
 
     virtual void end() override
     {
         TimeLog::end();
-        status_ = NodeStatus::DONE;
     }
 
     std::string nodeToStr()

@@ -14,7 +14,7 @@ namespace GeneticAlgorithm
         using namespace Types;
 
         template<class ReturnType, class ... Args>
-        struct Wrapper {virtual ReturnType operator()(Args...) const = 0;};
+        struct Wrapper {virtual ReturnType operator()(Args...) = 0;};
 
 
 
@@ -47,13 +47,24 @@ namespace GeneticAlgorithm
 
 
         template<class GeneType, class FitnessType>
+        struct StartEvolutionLogWrapper: public Wrapper<void, const Population<GeneType, FitnessType>&, const std::string&> {};
+
+        template<class GeneType, class FitnessType>
+        struct EndEvolutionLogWrapper: public Wrapper<void, const Population<GeneType, FitnessType>&, const std::string&> {};
+
+        template<class GeneType, class FitnessType>
         struct NewGenerationLogWrapper: public Wrapper<void, const Generation<GeneType, FitnessType>&, const std::string&> {};
 
-        template<class GeneType, class FitnessType>
-        struct StartNodeLogWrapper: public Wrapper<void, const Population<GeneType, FitnessType>&, const std::string&> {};
+
+        struct StartNodeLogWrapper: public Wrapper<void, const std::string&> {};
+        struct EndNodeLogWrapper: public Wrapper<void, const std::string&> {};
+
 
         template<class GeneType, class FitnessType>
-        struct EndNodeLogWrapper: public Wrapper<void, const Population<GeneType, FitnessType>&, const std::string&> {};
+        struct StartNodeFunctionWrapper: public Wrapper<void, Population<GeneType, FitnessType>&> {};
+
+        template<class GeneType, class FitnessType>
+        struct EndNodeFunctionWrapper: public Wrapper<void, Population<GeneType, FitnessType>&> {};
 
 
 
@@ -86,7 +97,7 @@ namespace GeneticAlgorithm
 
 
         template<class GeneType, class FitnessType, size_t num_genes, size_t num_chromosomes, size_t suffix_size, size_t num_populations>
-        struct PoolingPopulationsWrapper: 
+        struct StatPoolingPopulationsWrapper: 
             public Wrapper<StatPopulation<GeneType, FitnessType, num_genes, num_chromosomes, suffix_size>, 
                 std::array<StatPopulation<GeneType, FitnessType, num_genes, num_chromosomes, suffix_size>, num_populations>&> {};
 
@@ -102,11 +113,6 @@ namespace GeneticAlgorithm
         template<class GeneType, class FitnessType, size_t num_genes, size_t num_chromosomes, size_t suffix_size>
         struct StatEndNodeLogWrapper: 
             public Wrapper<void, const StatPopulation<GeneType, FitnessType, num_genes, num_chromosomes, suffix_size>&, const std::string&> {};
-
-
-
-        struct EndNodeFunctionWrapper: public Wrapper<void> {};
-        struct StartNodeFunctionWrapper: public Wrapper<void> {};
 
 
     } // end namespace Interfaces
