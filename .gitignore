@@ -54,4 +54,6 @@ test/
 *.DS_Store
 *.sqlite
 
-*main
+examples/one-node
+examples/log-examples
+examples/temp
