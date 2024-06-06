@@ -35,7 +35,7 @@
 *.aux
 *.fdb_latexmk
 *.fls
-*.pdf
+# *.pdf
 *.sty
 *.gz
 *.tex
