@@ -178,14 +178,14 @@ struct EndNodeLog: public EndNodeLogWrapper<Population_>
 };
 
 
-struct Deserialization: public TypeCastWrapper<std::vector<Population_>&, Population_>
+struct Deserialization: public DeserializationWrapper<Population_, Population_>
 {
     Population_ operator() (std::vector<Population_>& inputs) override
     {
         Population_ new_population(1);
         if (inputs.size() == 0)
         {
-            new_population.get().push(Generation_(5, Chromosome_(1, 1000)));
+            new_population.get().push(Generation_(100, Chromosome_(1, 1000)));
             return new_population;
         }
         new_population.get().push(Generation_());
@@ -206,7 +206,7 @@ struct Deserialization: public TypeCastWrapper<std::vector<Population_>&, Popula
 };
 
 
-struct Serialization: public TypeCastWrapper<Population_&, Population_>
+struct Serialization: public SerializationWrapper<Population_, Population_>
 {
     Population_ operator() (Population_& output) override
     {

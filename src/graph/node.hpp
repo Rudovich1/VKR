@@ -39,13 +39,13 @@ namespace HeuristicAlgorithm
         {
             using BaseNode_ = BaseNode<SerializationType>;
 
-            using Deserialization_ = TypeCastWrapper<std::vector<SerializationType>&, InputType>;
+            using Deserialization_ = DeserializationWrapper<SerializationType, InputType>;
             using StartNodeLog_ = StartNodeLogWrapper<InputType>;
             using StartNodeFunction_ = StartNodeFunctionWrapper<InputType>;
 
             using Algorithm_ = Algorithm<InputType, OutputType>;
 
-            using Serialization_ = TypeCastWrapper<OutputType&, SerializationType>;
+            using Serialization_ = SerializationWrapper<SerializationType, OutputType>;
             using EndNodeLog_ = EndNodeLogWrapper<OutputType>;
             using EndNodeFunction_ = EndNodeFunctionWrapper<OutputType>;
 

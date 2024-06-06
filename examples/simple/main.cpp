@@ -25,17 +25,14 @@ HeuristicAlgorithm::GeneticAlgorithm::GeneticAlgorithm<double, double> make_ga(
 
 int main()
 {
-    std::function<double(double)> y = [](double x) {return std::abs(x - 5);};
+    std::function<double(double)> y = [](double x) {return 1*x*x*x*x - 12*x*x*x + 123*x*x - 1234*x + 12345;};
     std::pair<double, double> best_res = {1000, y(1000)};
-    double coef = 1000;
-    double step = 1.1;
+    double coef = 100000;
+    double step = 2;
     std::chrono::seconds work_time(1);
     std::chrono::steady_clock::time_point start_time;
 
     auto ga = make_ga(y, best_res, coef, step, work_time, start_time);
-
-    Population_ start(1);
-    start.get().push(Generation_(1, Chromosome_(1, 1000)));
 
     HeuristicAlgorithm::Graph::Node<Population_, Population_, Population_> node("node");
     node.setAlgorithm(std::make_shared<HeuristicAlgorithm::GeneticAlgorithm::GeneticAlgorithm<double, double>>(ga));
@@ -43,10 +40,6 @@ int main()
     node.setEndNodeLog(std::make_shared<EndNodeLog>());
     node.setSerialization(std::make_shared<Serialization>());
     node.setStartNodeLog(std::make_shared<StartNodeLog>());
-
-    std::vector<Population_> node_start = {start};
-
-    // node.evolution(node_start);
 
     HeuristicAlgorithm::Graph::Graph<Population_> graph;
     graph.add_node(std::make_shared<HeuristicAlgorithm::Graph::Node<Population_, Population_, Population_>>(node));

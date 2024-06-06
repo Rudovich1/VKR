@@ -31,8 +31,13 @@ namespace HeuristicAlgorithm
             {
             };
 
-            template<class InputType, class OutputType>
-            struct TypeCastWrapper: public Wrapper<OutputType, InputType>
+            template<class SerializationType, class InputType>
+            struct DeserializationWrapper: public Wrapper<InputType, std::vector<SerializationType>&>
+            {
+            };
+
+            template<class SerializationType, class OutputType>
+            struct SerializationWrapper: public Wrapper<SerializationType, OutputType&>
             {
             };
         }
