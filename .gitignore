@@ -41,7 +41,7 @@
 *.tex
 *.toc
 
-*.PNG
+# *.PNG
 *.log
 !*startup.json
 *.lock

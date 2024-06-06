@@ -137,7 +137,7 @@ Population<GeneType, FitnessType> evolution(Population<GeneType, FitnessType>& p
 на вход подается стартовое состояние популяции, а на выходе будет финальное.
 
 Выполнение генетического алгоритма будет выполнятся по следующему правилу:
-![Генетический алгоритм](img/evolution.pdf)
+![Генетический алгоритм](img/evolution.png)
 
 Для работы алгоритма необходимы к реализации только FitnessFunctionWrapper и ConditionsForStoppingWrapper, остальные являются опциональными.
 
@@ -199,7 +199,7 @@ struct SerializationWrapper: public Wrapper<SerializationType, OutputType&> {};
     // Функтор сериализации выходных данных алгоритма во выходные данные вершины
 ```
 
-![Схема вершины](img/node.pdf)
+![Схема вершины](img/node.png)
 
 Сеттеры:
 
